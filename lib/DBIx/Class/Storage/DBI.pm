@@ -1550,6 +1550,7 @@ sub _prep_for_execute {
 
 sub _gen_sql_bind {
   my ($self, $op, $ident, $args) = @_;
+  $args = [ $args ] unless (ref $args);
 
   my ($sql, @bind) = $self->sql_maker->$op(
     blessed($ident) ? $ident->from : $ident,
@@ -1561,7 +1562,7 @@ sub _gen_sql_bind {
       and
     $op eq 'select'
       and
-    first { blessed($_->[1]) && $_->[1]->isa('DateTime') } @bind
+    first { ref $_ && @$_ > 1 && blessed($_->[1]) && $_->[1]->isa('DateTime') } @bind
   ) {
     carp_unique 'DateTime objects passed to search() are not supported '
       . 'properly (InflateColumn::DateTime formats and settings are not '
@@ -1603,6 +1604,9 @@ sub _resolve_bindattrs {
   return [ map {
     if (ref $_ ne 'ARRAY') {
       [{}, $_]
+    }
+    elsif (@$_ == 1 && ref $_->[0] ne 'HASH') {
+      [{}, $_->[0]]
     }
     elsif (! defined $_->[0]) {
       [{}, $_->[1]]

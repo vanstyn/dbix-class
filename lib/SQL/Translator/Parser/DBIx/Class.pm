@@ -269,7 +269,9 @@ sub parse {
     }
 
     # attach the tables to the schema in dependency order
-    my $dependencies = _get_deps($dbicschema, 'Table');
+    my $dependencies = {
+      map { $_ => $dbicschema->_resolve_deps ($_, \%tables) } (keys %tables)
+    };
 
     for my $table (sort
       {
@@ -301,7 +303,11 @@ EOW
     my %views;
     my @views = map { $dbicschema->source($_) } keys %view_monikers;
 
-    my $view_dependencies = _get_deps($dbicschema, 'View');
+    my $view_dependencies = {
+        map {
+            $_ => $dbicschema->_resolve_deps( $dbicschema->source($_), \%view_monikers )
+          } ( keys %view_monikers )
+    };
 
     my @view_sources =
       sort {
@@ -344,28 +350,6 @@ EOW
     }
 
     return 1;
-}
-
-sub _get_deps {
-   my $schema = shift;
-   my $type   = shift;
-
-   my %sources =
-      map $_->[0],
-      grep { $_->[1]->isa("DBIx::Class::ResultSource::$type") }
-      map +[$_, $schema->source($_)],
-      $schema->sources;
-
-   my %s_dep = %{$schema->source_tree({ limit_sources => \%sources })};
-   my %t_deps;
-   for my $s (keys %s_dep) {
-      $t_deps{$schema->source($s)->name} = {
-         map {
-            $schema->source($_)->name => 1,
-         } keys %{$s_dep{$s}}
-      };
-   }
-   \%t_deps
 }
 
 1;

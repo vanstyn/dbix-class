@@ -1536,15 +1536,6 @@ sub compose_connection {
   return $schema;
 }
 
-sub r_sources {
-   my $self = shift;
-
-   my %sref = %{$self->source_registrations};
-
-   return {
-      map { $sref{$_} => $_ } keys %sref
-   }
-}
 
 sub source_tree {
    my $self = shift;
@@ -1565,7 +1556,9 @@ sub source_tree {
       grep { !$limit_sources{$_} }
       $self->sources;
 
-   my %r_sources = %{$self->r_sources};
+   my %r_sources = map {
+      $self->source_registrations->{$_} => $_
+   } keys %{$self->source_registrations};
    my %sources;
    foreach my $moniker (sort keys %table_monikers) {
        my $source = $self->source($moniker);

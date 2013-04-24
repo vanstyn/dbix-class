@@ -1540,9 +1540,9 @@ sub compose_connection {
 
 =over 4
 
-=item Arguments: %opts?
+=item Arguments: none
 
-=item Return Value: %source_tree
+=item Return Value: \%source_tree
 
 =back
 
@@ -1559,31 +1559,16 @@ Sources with no dependencies map to an empty HashRef.
 This provides information about deep dependencies and foreign-key cascades that may apply to ResultSources
 across multiple levels of relations.
 
-Options:
-
- limit_sources => \@source_names # sources to exclude (wouldn't 'exclude_sources' be better?)
-
 TODO/FIXME/IN PROGESS
 
 =cut
 
 sub source_tree {
    my $self = shift;
-   my %args = (ref($_[0]) eq 'HASH') ? %{ $_[0] } : @_; # <-- hashref or hashref-as-list
-
-   my %limit_sources = do {
-      my $l = $args{limit_sources};
-      my $ref = ref $l;
-
-      $ref eq 'HASH' ?
-         %$l
-         : map { $_ => 1} @$l
-   };
 
    my %table_monikers =
       map { $_ => 1 }
       grep { $self->source($_)->isa('DBIx::Class::ResultSource::Table') }
-      grep { !$limit_sources{$_} }
       $self->sources;
 
    my %r_sources = map {

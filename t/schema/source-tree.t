@@ -13,83 +13,200 @@ is_deeply($schema->source_tree, {
   Artist => {},
   ArtistSubclass => {},
   ArtistUndirectedMap => {
-    Artist => 1
+    Artist => {
+      depth => 0,
+      for_view => 0
+    }
   },
   Artwork => {
-    CD => 1,
-    Genre => 1,
-    Track => 1
+    CD => {
+      depth => 0,
+      for_view => 0
+    },
+    Genre => {
+      depth => 1,
+      for_view => 0
+    },
+    Track => {
+      depth => 1,
+      for_view => 0
+    }
   },
   Artwork_to_Artist => {
-    Artist => 1,
-    Artwork => 1,
-    CD => 1,
-    Genre => 1,
-    Track => 1
+    Artist => {
+      depth => 0,
+      for_view => 0
+    },
+    Artwork => {
+      depth => 0,
+      for_view => 0
+    },
+    CD => {
+      depth => 1,
+      for_view => 0
+    },
+    Genre => {
+      depth => 2,
+      for_view => 0
+    },
+    Track => {
+      depth => 2,
+      for_view => 0
+    }
   },
   BindType => {},
   Bookmark => {
-    Link => 1
+    Link => {
+      depth => 0,
+      for_view => 0
+    }
   },
   BooksInLibrary => {
-    Owners => 1
+    Owners => {
+      depth => 0,
+      for_view => 0
+    }
   },
   CD => {
-    Genre => 1,
-    Track => 1
+    Genre => {
+      depth => 0,
+      for_view => 0
+    },
+    Track => {
+      depth => 0,
+      for_view => 0
+    }
   },
   CD_to_Producer => {
-    CD => 1,
-    Genre => 1,
-    Producer => 1,
-    Track => 1
+    CD => {
+      depth => 0,
+      for_view => 0
+    },
+    Genre => {
+      depth => 1,
+      for_view => 0
+    },
+    Producer => {
+      depth => 0,
+      for_view => 0
+    },
+    Track => {
+      depth => 1,
+      for_view => 0
+    }
   },
   Collection => {},
   CollectionObject => {
-    Collection => 1,
-    TypedObject => 1
+    Collection => {
+      depth => 0,
+      for_view => 0
+    },
+    TypedObject => {
+      depth => 0,
+      for_view => 0
+    }
   },
   CustomSql => {},
   Dummy => {},
   Employee => {
-    Encoded => 1
+    Encoded => {
+      depth => 0,
+      for_view => 0
+    }
   },
   Encoded => {},
   Event => {},
   EventTZ => {},
   ForceForeign => {
-    Artist => 1
+    Artist => {
+      depth => 0,
+      for_view => 0
+    }
   },
   FourKeys => {},
   FourKeys_to_TwoKeys => {
-    Artist => 1,
-    CD => 1,
-    FourKeys => 1,
-    Genre => 1,
-    Track => 1,
-    TwoKeys => 1
+    Artist => {
+      depth => 1,
+      for_view => 0
+    },
+    CD => {
+      depth => 1,
+      for_view => 0
+    },
+    FourKeys => {
+      depth => 0,
+      for_view => 0
+    },
+    Genre => {
+      depth => 2,
+      for_view => 0
+    },
+    Track => {
+      depth => 2,
+      for_view => 0
+    },
+    TwoKeys => {
+      depth => 0,
+      for_view => 0
+    }
   },
   Genre => {},
   Image => {
-    Artwork => 1,
-    CD => 1,
-    Genre => 1,
-    Track => 1
+    Artwork => {
+      depth => 0,
+      for_view => 0
+    },
+    CD => {
+      depth => 1,
+      for_view => 0
+    },
+    Genre => {
+      depth => 2,
+      for_view => 0
+    },
+    Track => {
+      depth => 2,
+      for_view => 0
+    }
   },
   LinerNotes => {
-    CD => 1,
-    Genre => 1,
-    Track => 1
+    CD => {
+      depth => 0,
+      for_view => 0
+    },
+    Genre => {
+      depth => 1,
+      for_view => 0
+    },
+    Track => {
+      depth => 1,
+      for_view => 0
+    }
   },
   Link => {},
   LyricVersion => {
-    CD => 1,
-    Lyrics => 1,
-    Track => 1
+    CD => {
+      depth => 2,
+      for_view => 0
+    },
+    Lyrics => {
+      depth => 0,
+      for_view => 0
+    },
+    Track => {
+      depth => 1,
+      for_view => 0
+    }
   },
   Lyrics => {
-    CD => 1,
-    Track => 1
+    CD => {
+      depth => 1,
+      for_view => 0
+    },
+    Track => {
+      depth => 0,
+      for_view => 0
+    }
   },
   Money => {},
   NoPrimaryKey => {},
@@ -98,27 +215,54 @@ is_deeply($schema->source_tree, {
   Producer => {},
   SelfRef => {},
   SelfRefAlias => {
-    SelfRef => 1
+    SelfRef => {
+      depth => 0,
+      for_view => 0
+    }
   },
   SequenceTest => {},
   Serialized => {},
   SourceNameArtists => {},
   Tag => {
-    CD => 1,
-    Genre => 1,
-    Track => 1
+    CD => {
+      depth => 0,
+      for_view => 0
+    },
+    Genre => {
+      depth => 1,
+      for_view => 0
+    },
+    Track => {
+      depth => 1,
+      for_view => 0
+    }
   },
   TimestampPrimaryKey => {},
   Track => {
-    CD => 1
+    CD => {
+      depth => 0,
+      for_view => 0
+    }
   },
   TreeLike => {},
   TwoKeyTreeLike => {},
   TwoKeys => {
-    Artist => 1,
-    CD => 1,
-    Genre => 1,
-    Track => 1
+    Artist => {
+      depth => 0,
+      for_view => 0
+    },
+    CD => {
+      depth => 0,
+      for_view => 0
+    },
+    Genre => {
+      depth => 1,
+      for_view => 0
+    },
+    Track => {
+      depth => 1,
+      for_view => 0
+    }
   },
   TypedObject => {}
 }, 'got correct source tree');
@@ -129,78 +273,180 @@ my $sans_TwoKeys = {
   Artist => {},
   ArtistSubclass => {},
   ArtistUndirectedMap => {
-    Artist => 1
+    Artist => {
+      depth => 0,
+      for_view => 0
+    }
   },
   Artwork => {
-    CD => 1,
-    Genre => 1,
-    Track => 1
+    CD => {
+      depth => 0,
+      for_view => 0
+    },
+    Genre => {
+      depth => 1,
+      for_view => 0
+    },
+    Track => {
+      depth => 1,
+      for_view => 0
+    }
   },
   Artwork_to_Artist => {
-    Artist => 1,
-    Artwork => 1,
-    CD => 1,
-    Genre => 1,
-    Track => 1
+    Artist => {
+      depth => 0,
+      for_view => 0
+    },
+    Artwork => {
+      depth => 0,
+      for_view => 0
+    },
+    CD => {
+      depth => 1,
+      for_view => 0
+    },
+    Genre => {
+      depth => 2,
+      for_view => 0
+    },
+    Track => {
+      depth => 2,
+      for_view => 0
+    }
   },
   BindType => {},
   Bookmark => {
-    Link => 1
+    Link => {
+      depth => 0,
+      for_view => 0
+    }
   },
   BooksInLibrary => {
-    Owners => 1
+    Owners => {
+      depth => 0,
+      for_view => 0
+    }
   },
   CD => {
-    Genre => 1,
-    Track => 1
+    Genre => {
+      depth => 0,
+      for_view => 0
+    },
+    Track => {
+      depth => 0,
+      for_view => 0
+    }
   },
   CD_to_Producer => {
-    CD => 1,
-    Genre => 1,
-    Producer => 1,
-    Track => 1
+    CD => {
+      depth => 0,
+      for_view => 0
+    },
+    Genre => {
+      depth => 1,
+      for_view => 0
+    },
+    Producer => {
+      depth => 0,
+      for_view => 0
+    },
+    Track => {
+      depth => 1,
+      for_view => 0
+    }
   },
   Collection => {},
   CollectionObject => {
-    Collection => 1,
-    TypedObject => 1
+    Collection => {
+      depth => 0,
+      for_view => 0
+    },
+    TypedObject => {
+      depth => 0,
+      for_view => 0
+    }
   },
   CustomSql => {},
   Dummy => {},
   Employee => {
-    Encoded => 1
+    Encoded => {
+      depth => 0,
+      for_view => 0
+    }
   },
   Encoded => {},
   Event => {},
   EventTZ => {},
   ForceForeign => {
-    Artist => 1
+    Artist => {
+      depth => 0,
+      for_view => 0
+    }
   },
   FourKeys => {},
   FourKeys_to_TwoKeys => {
-    FourKeys => 1
+    FourKeys => {
+      depth => 0,
+      for_view => 0
+    }
   },
   Genre => {},
   Image => {
-    Artwork => 1,
-    CD => 1,
-    Genre => 1,
-    Track => 1
+    Artwork => {
+      depth => 0,
+      for_view => 0
+    },
+    CD => {
+      depth => 1,
+      for_view => 0
+    },
+    Genre => {
+      depth => 2,
+      for_view => 0
+    },
+    Track => {
+      depth => 2,
+      for_view => 0
+    }
   },
   LinerNotes => {
-    CD => 1,
-    Genre => 1,
-    Track => 1
+    CD => {
+      depth => 0,
+      for_view => 0
+    },
+    Genre => {
+      depth => 1,
+      for_view => 0
+    },
+    Track => {
+      depth => 1,
+      for_view => 0
+    }
   },
   Link => {},
   LyricVersion => {
-    CD => 1,
-    Lyrics => 1,
-    Track => 1
+    CD => {
+      depth => 2,
+      for_view => 0
+    },
+    Lyrics => {
+      depth => 0,
+      for_view => 0
+    },
+    Track => {
+      depth => 1,
+      for_view => 0
+    }
   },
   Lyrics => {
-    CD => 1,
-    Track => 1
+    CD => {
+      depth => 1,
+      for_view => 0
+    },
+    Track => {
+      depth => 0,
+      for_view => 0
+    }
   },
   Money => {},
   NoPrimaryKey => {},
@@ -209,19 +455,34 @@ my $sans_TwoKeys = {
   Producer => {},
   SelfRef => {},
   SelfRefAlias => {
-    SelfRef => 1
+    SelfRef => {
+      depth => 0,
+      for_view => 0
+    }
   },
   SequenceTest => {},
   Serialized => {},
   SourceNameArtists => {},
   Tag => {
-    CD => 1,
-    Genre => 1,
-    Track => 1
+    CD => {
+      depth => 0,
+      for_view => 0
+    },
+    Genre => {
+      depth => 1,
+      for_view => 0
+    },
+    Track => {
+      depth => 1,
+      for_view => 0
+    }
   },
   TimestampPrimaryKey => {},
   Track => {
-    CD => 1
+    CD => {
+      depth => 0,
+      for_view => 0
+    }
   },
   TreeLike => {},
   TwoKeyTreeLike => {},

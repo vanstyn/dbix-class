@@ -1627,17 +1627,21 @@ sub source_tree {
    }
 }
 
+# Logic moved/adapted from SQL::Translator::Parser::DBIx::Class
 sub _resolve_deps {
     my ( $self, $question, $answers, $seen ) = @_;
     my $ret = {};
     $seen ||= {};
     my @deps;
 
+    my $is_view = (
+      blessed($question) &&
+      $question->isa('DBIx::Class::ResultSource::View') 
+    ) ? 1 : 0;
+
     # copy and bump all deps by one (so we can reconstruct the chain)
     my %seen = map { $_ => $seen->{$_} + 1 } ( keys %$seen );
-    if ( blessed($question)
-        && $question->isa('DBIx::Class::ResultSource::View') )
-    {
+    if ($is_view) {
         $seen{ $question->result_class } = 1;
         @deps = keys %{ $question->{deploy_depends_on} };
     }
@@ -1652,9 +1656,7 @@ sub _resolve_deps {
         }
         my $next_dep;
 
-        if ( blessed($question)
-            && $question->isa('DBIx::Class::ResultSource::View') )
-        {
+        if ($is_view) {
             no warnings 'uninitialized';
             my ($next_dep_source_name) =
               grep {
@@ -1669,8 +1671,14 @@ sub _resolve_deps {
             $next_dep = $dep;
         }
         my $subdeps = $self->_resolve_deps( $next_dep, $answers, \%seen );
-        $ret->{$_} += $subdeps->{$_} for ( keys %$subdeps );
-        ++$ret->{$dep};
+        for ( keys %$subdeps ) {
+          $ret->{$_} ||= $subdeps->{$_};
+          ++$ret->{$_}->{depth};
+        }
+        $ret->{$dep} = {
+          for_view => $is_view, #<-- is this *really* useful? Is this what riba meant??
+          depth => 0
+        };
     }
     return $ret;
 }

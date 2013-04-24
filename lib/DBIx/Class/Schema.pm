@@ -1536,6 +1536,36 @@ sub compose_connection {
   return $schema;
 }
 
+=head2 source_tree
+
+=over 4
+
+=item Arguments: %opts?
+
+=item Return Value: %source_tree
+
+=back
+
+Returns a map of sources to relationship dependencies (i.e. foreign-key relationships) as a HashRef (of HashRefs). 
+Dependencies are represented as a HashRef mapping the name of the dependent source to meta data about the
+dependency. Meta data currently consists of the following:
+
+ depth: the number of levels deep (0 means direct dependency)
+ for_view: true if the dep is of a virtual view rather than a normal table (FIXME)
+ hard: true if the dep is "hard" (FIXME what is "hard"? - not implemented)
+
+Sources with no dependencies map to an empty HashRef.
+
+This provides information about deep dependencies and foreign-key cascades that may apply to ResultSources
+across multiple levels of relations.
+
+Options:
+
+ limit_sources => \@source_names # sources to exclude (wouldn't 'exclude_sources' be better?)
+
+TODO/FIXME/IN PROGESS
+
+=cut
 
 sub source_tree {
    my $self = shift;

@@ -1539,10 +1539,10 @@ sub compose_connection {
 
 sub source_tree {
    my $self = shift;
-   my $args = shift;
+   my %args = (ref($_[0]) eq 'HASH') ? %{ $_[0] } : @_; # <-- hashref or hashref-as-list
 
    my %limit_sources = do {
-      my $l = $args->{limit_sources};
+      my $l = $args{limit_sources};
       my $ref = ref $l;
 
       $ref eq 'HASH' ?

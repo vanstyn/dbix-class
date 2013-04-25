@@ -1551,8 +1551,13 @@ Dependencies are represented as a HashRef mapping the name of the dependent sour
 dependency. Meta data currently consists of the following:
 
  depth: the number of levels deep (0 means direct dependency)
- for_view: true if the dep is of a virtual view rather than a normal table (FIXME)
- hard: true if the dep is "hard" (FIXME what is "hard"? - not implemented)
+ 
+ is_view: true if the dep source is a view (ResultSource::View)
+ 
+ for_view: true if the dep *belongs* to a virtual view (i.e. the 
+           parent is a view) rather than a normal table 
+ 
+ hard: true if the dep is "hard" (FIXME - not implemented)
 
 Sources with no dependencies map to an empty HashRef.
 
@@ -1566,8 +1571,11 @@ TODO/FIXME/IN PROGESS
 sub source_tree {
    my $self = shift;
 
-   my %table_monikers =
+   my %all_monikers =
       map { $_ => 1 }
+      $self->sources;
+
+   my @real_tables =
       grep { $self->source($_)->isa('DBIx::Class::ResultSource::Table') }
       $self->sources;
 
@@ -1575,7 +1583,8 @@ sub source_tree {
       $self->source_registrations->{$_} => $_
    } keys %{$self->source_registrations};
    my %sources;
-   foreach my $moniker (sort keys %table_monikers) {
+   #foreach my $moniker (sort keys %all_monikers) {
+   foreach my $moniker (sort @real_tables) {
        my $source = $self->source($moniker);
 
        # It's possible to have multiple DBIC sources using the same table
@@ -1595,7 +1604,7 @@ sub source_tree {
            next unless $relsource;
 
            # related sources might be excluded via a {sources} filter or might be views
-           next unless exists $table_monikers{$relsource->source_name};
+           next unless exists $all_monikers{$relsource->source_name};
 
            my $rel_moniker = $r_sources{$relsource};
 
@@ -1643,20 +1652,22 @@ sub source_tree {
 }
 
 # Logic moved/adapted from SQL::Translator::Parser::DBIx::Class
+# TODO: normalize $question first
 sub _resolve_deps {
     my ( $self, $question, $answers, $seen ) = @_;
     my $ret = {};
     $seen ||= {};
     my @deps;
 
-    my $is_view = (
-      blessed($question) &&
-      $question->isa('DBIx::Class::ResultSource::View') 
-    ) ? 1 : 0;
+    my $is_view = (( blessed($question) &&
+        $question->isa('DBIx::Class::ResultSource::View')
+      ) || try{
+        $self->source($question)->isa('DBIx::Class::ResultSource::View')
+    }) ? 1 : 0;
 
     # copy and bump all deps by one (so we can reconstruct the chain)
     my %seen = map { $_ => $seen->{$_} + 1 } ( keys %$seen );
-    if ($is_view) {
+    if ($is_view && blessed($question)) {
         $seen{ $question->result_class } = 1;
         @deps = keys %{ $question->{deploy_depends_on} };
     }
@@ -1671,7 +1682,7 @@ sub _resolve_deps {
         }
         my $next_dep;
 
-        if ($is_view) {
+        if ($is_view && blessed($question)) {
             no warnings 'uninitialized';
             my ($next_dep_source_name) =
               grep {
@@ -1691,7 +1702,11 @@ sub _resolve_deps {
           ++$ret->{$_}->{depth};
         }
         $ret->{$dep} = {
-          for_view => $is_view, #<-- is this *really* useful? Is this what riba meant??
+          for_view => $is_view,
+          is_view => (try {
+            # Temp - FIXME - refactor to handle $dep as relname
+            $self->source($dep)->isa('DBIx::Class::ResultSource::View') 
+          }) ? 1 : 0,
           depth => 0
         };
     }

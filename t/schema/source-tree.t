@@ -15,95 +15,114 @@ is_deeply($schema->source_tree, {
   ArtistUndirectedMap => {
     Artist => {
       depth => 0,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     }
   },
   Artwork => {
     CD => {
       depth => 0,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     Genre => {
       depth => 1,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     Track => {
       depth => 1,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     }
   },
   Artwork_to_Artist => {
     Artist => {
       depth => 0,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     Artwork => {
       depth => 0,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     CD => {
       depth => 1,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     Genre => {
       depth => 2,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     Track => {
       depth => 2,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     }
   },
   BindType => {},
   Bookmark => {
     Link => {
       depth => 0,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     }
   },
   BooksInLibrary => {
     Owners => {
       depth => 0,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     }
   },
   CD => {
     Genre => {
       depth => 0,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     Track => {
       depth => 0,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     }
   },
   CD_to_Producer => {
     CD => {
       depth => 0,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     Genre => {
       depth => 1,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     Producer => {
       depth => 0,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     Track => {
       depth => 1,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     }
   },
   Collection => {},
   CollectionObject => {
     Collection => {
       depth => 0,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     TypedObject => {
       depth => 0,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     }
   },
   CustomSql => {},
@@ -111,7 +130,8 @@ is_deeply($schema->source_tree, {
   Employee => {
     Encoded => {
       depth => 0,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     }
   },
   Encoded => {},
@@ -120,92 +140,131 @@ is_deeply($schema->source_tree, {
   ForceForeign => {
     Artist => {
       depth => 0,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     }
   },
   FourKeys => {},
   FourKeys_to_TwoKeys => {
     Artist => {
       depth => 1,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     CD => {
       depth => 1,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     FourKeys => {
       depth => 0,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     Genre => {
       depth => 2,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     Track => {
       depth => 2,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     TwoKeys => {
       depth => 0,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     }
   },
   Genre => {},
   Image => {
     Artwork => {
       depth => 0,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     CD => {
       depth => 1,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     Genre => {
       depth => 2,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     Track => {
       depth => 2,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     }
   },
   LinerNotes => {
     CD => {
       depth => 0,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     Genre => {
       depth => 1,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     Track => {
       depth => 1,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     }
   },
   Link => {},
   LyricVersion => {
     CD => {
       depth => 2,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     Lyrics => {
       depth => 0,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     Track => {
       depth => 1,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
+    },
+    Year1999CDs => {
+      depth => 2,
+      for_view => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      depth => 2,
+      for_view => 0,
+      is_view => 1
     }
   },
   Lyrics => {
     CD => {
       depth => 1,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     Track => {
       depth => 0,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
+    },
+    Year1999CDs => {
+      depth => 1,
+      for_view => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      depth => 1,
+      for_view => 0,
+      is_view => 1
     }
   },
   Money => {},
@@ -217,7 +276,8 @@ is_deeply($schema->source_tree, {
   SelfRefAlias => {
     SelfRef => {
       depth => 0,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     }
   },
   SequenceTest => {},
@@ -226,22 +286,36 @@ is_deeply($schema->source_tree, {
   Tag => {
     CD => {
       depth => 0,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     Genre => {
       depth => 1,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     Track => {
       depth => 1,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     }
   },
   TimestampPrimaryKey => {},
   Track => {
     CD => {
       depth => 0,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
+    },
+    Year1999CDs => {
+      depth => 0,
+      for_view => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      depth => 0,
+      for_view => 0,
+      is_view => 1
     }
   },
   TreeLike => {},
@@ -249,19 +323,23 @@ is_deeply($schema->source_tree, {
   TwoKeys => {
     Artist => {
       depth => 0,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     CD => {
       depth => 0,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     Genre => {
       depth => 1,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     },
     Track => {
       depth => 1,
-      for_view => 0
+      for_view => 0,
+      is_view => 0
     }
   },
   TypedObject => {}

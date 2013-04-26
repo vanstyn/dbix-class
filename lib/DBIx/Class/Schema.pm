@@ -1518,7 +1518,7 @@ sub compose_connection {
 
 =over 4
 
-=item Arguments: none
+=item Arguments: %opts
 
 =item Return Value: \%source_tree
 
@@ -1542,27 +1542,39 @@ Sources with no dependencies map to an empty HashRef.
 This provides information about deep dependencies and foreign-key cascades that may apply to ResultSources
 across multiple levels of relations.
 
+The following arguments can also be supplied:
+
+=over 4
+
+=item type - 'tables', 'views', or 'all' (defaults to 'tables')
+
+=item limit_sources - \@source_names
+
+=item exclude_sources - \@source_names
+
+=back
+
 TODO/FIXME/IN PROGESS
 
 =cut
 
 sub source_tree {
    my $self = shift;
+   my %opts = (ref($_[0]) eq 'HASH') ? %{ $_[0] } : @_; # <-- hashref or hashref-as-list
 
-   my %all_monikers =
-      map { $_ => 1 }
-      $self->sources;
+   my @valid_opts = qw/type limit_sources exclude_sources/;
+   my %valid_opts = map {$_=>1} @valid_opts;
+   $valid_opts{$_} or $self->throw_exception(
+      "Unknown option '$_'"
+   ) for (keys %opts);
 
-   my @real_tables =
-      grep { $self->source($_)->isa('DBIx::Class::ResultSource::Table') }
-      $self->sources;
+   my $inc_monikers = $self->_monikers_for_source_tree_opts(\%opts);
 
    my %r_sources = map {
       $self->source_registrations->{$_} => $_
    } keys %{$self->source_registrations};
    my %sources;
-   #foreach my $moniker (sort keys %all_monikers) {
-   foreach my $moniker (sort @real_tables) {
+   foreach my $moniker (sort keys %$inc_monikers) {
        my $source = $self->source($moniker);
 
        # It's possible to have multiple DBIC sources using the same table
@@ -1581,8 +1593,10 @@ sub source_tree {
            my $relsource = try { $source->related_source($rel) };
            next unless $relsource;
 
-           # related sources might be excluded via a {sources} filter or might be views
-           next unless exists $all_monikers{$relsource->source_name};
+           ## related sources might be excluded via a {sources} filter
+           ##  FIXME: do we really want the limit/exclude to apply to the *dependencies*
+           ##  or only the top-level sources? No, I don't think we do. Removing (vanstyn)
+           #next unless exists $inc_monikers->{$relsource->source_name};
 
            my $rel_moniker = $r_sources{$relsource};
 
@@ -1627,6 +1641,65 @@ sub source_tree {
    return {
      map { $_ => $self->_resolve_deps ($_, \%sources) } (keys %sources)
    }
+}
+
+sub _monikers_for_source_tree_opts {
+  my $self = shift;
+  my $opts = shift;
+
+  my $def_type = 'tables';
+  $opts->{type} ||= $def_type; # <-- all, tables, or views
+
+  $opts->{limit_sources} = [$opts->{limit_sources}] if (
+    $opts->{limit_sources} &&
+    ! ref $opts->{limit_sources}
+  );
+
+  $opts->{exclude_sources} = [$opts->{exclude_sources}] if (
+    exists $opts->{exclude_sources} &&
+    ! ref $opts->{exclude_sources}
+  );
+  my %excl = map { $_ => 1 } grep { defined $_ } @{$opts->{exclude_sources}};
+
+  my @sources = grep { ! delete $excl{$_} } $self->sources;
+  $self->throw_exception(
+    "source_tree: unknown source name(s) (" . join(', ', sort keys %excl)
+    . ") specified in 'exclude_sources'"
+  ) if ( scalar keys %excl > 0 );
+
+  if(ref $opts->{limit_sources} && scalar @{$opts->{limit_sources}} > 0) {
+    my %incl = map { $_ => 1 } @{$opts->{limit_sources}};
+    @sources = grep { delete $incl{$_} } @sources;
+    $self->throw_exception(
+      "source_tree: unknown source name(s) (" . join(', ', sort keys %incl)
+      . ") specified in 'limit_sources'"
+    ) if ( scalar keys %incl > 0 );
+  }
+
+  my %monikers = ();
+  if($opts->{type} eq 'all') {
+    %monikers = map { $_ => 1 } @sources;
+  }
+  elsif($opts->{type} eq 'tables') {
+    %monikers =
+      map { $_ => 1 }
+      grep { $self->source($_)->isa('DBIx::Class::ResultSource::Table') }
+      @sources;
+  }
+  elsif($opts->{type} eq 'views') {
+     %monikers =
+       map { $_ => 1 }
+       grep { $self->source($_)->isa('DBIx::Class::ResultSource::View') }
+       @sources;
+  }
+  else {
+     $self->throw_exception(
+       "source_tree: bad type '$opts->{type}' - "
+       . "must be 'tables', 'views' or 'all'. (defaults to '$def_type')"
+     );
+  }
+
+  return \%monikers;
 }
 
 # Logic moved/adapted from SQL::Translator::Parser::DBIx::Class

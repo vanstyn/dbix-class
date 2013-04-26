@@ -17,12 +17,10 @@ plan skip_all => 'Test needs ' . DBIx::Class::Optional::Dependencies->req_missin
 
 my ($dsn, $user, $pass) = @ENV{map { "DBICTEST_MYSQL_${_}" } qw/DSN USER PASS/};
 
-#warn "$dsn $user $pass";
-
 plan skip_all => 'Set $ENV{DBICTEST_MYSQL_DSN}, _USER and _PASS to run this test'
   unless ($dsn && $user);
 
-my $schema = DBICTest::Schema->connect($dsn, $user, $pass);
+my $schema = DBICTest::Schema->connect($dsn, $user, $pass, { quote_names => 1 });
 
 my $dbh = $schema->storage->dbh;
 
@@ -206,10 +204,10 @@ lives_ok { $cd->set_producers ([ $producer ]) } 'set_relationship doesnt die';
   is_same_sql_bind (
     $rs->as_query,
     '(
-      SELECT me.cdid, me.artist, me.title, me.year, me.genreid, me.single_track,
-             artist.artistid, artist.name, artist.rank, artist.charfield
-        FROM cd me
-        INNER JOIN artist artist ON artist.artistid = me.artist
+      SELECT `me`.`cdid`, `me`.`artist`, `me`.`title`, `me`.`year`, `me`.`genreid`, `me`.`single_track`,
+             `artist`.`artistid`, `artist`.`name`, `artist`.`rank`, `artist`.`charfield`
+        FROM cd `me`
+        INNER JOIN `artist` `artist` ON `artist`.`artistid` = `me`.`artist`
     )',
     [],
     'overriden default join type works',
@@ -229,10 +227,10 @@ lives_ok { $cd->set_producers ([ $producer ]) } 'set_relationship doesnt die';
   is_same_sql_bind (
     $cdsrc->resultset->search({}, { prefetch => 'straight_artist' })->as_query,
     '(
-      SELECT me.cdid, me.artist, me.title, me.year, me.genreid, me.single_track,
-             straight_artist.artistid, straight_artist.name, straight_artist.rank, straight_artist.charfield
-        FROM cd me
-        STRAIGHT_JOIN artist straight_artist ON straight_artist.artistid = me.artist
+      SELECT `me`.`cdid`, `me`.`artist`, `me`.`title`, `me`.`year`, `me`.`genreid`, `me`.`single_track`,
+             `straight_artist`.`artistid`, `straight_artist`.`name`, `straight_artist`.`rank`, `straight_artist`.`charfield`
+        FROM cd `me`
+        STRAIGHT_JOIN `artist` `straight_artist` ON `straight_artist`.`artistid` = `me`.`artist`
     )',
     [],
     'straight joins correctly supported for mysql'
@@ -294,6 +292,61 @@ NULLINSEARCH: {
       join => 'books', group_by => [ 'me.id', 'books.id' ]
     })->count();
   }, 'count on grouped columns with the same name does not throw');
+}
+
+# a more contrived^Wcomplicated self-referential double-subquery test
+{
+  my $rs = $schema->resultset('Artist')->search({ name => { -like => 'baby_%' } });
+
+  $rs->populate([map { [$_] } ('name', map { "baby_$_" } (1..10) ) ]);
+
+  my ($count_sql, @count_bind) = @${$rs->count_rs->as_query};
+
+  my $complex_rs = $schema->resultset('Artist')->search(
+    { artistid => {
+      -in => $rs->get_column('artistid')
+                  ->as_query
+    } },
+  );
+
+  $complex_rs->update({ name => \[ "CONCAT( `name`, '_bell_out_of_', $count_sql )", @count_bind ] });
+
+  for (1..10) {
+    is (
+      $schema->resultset('Artist')->search({ name => "baby_${_}_bell_out_of_10" })->count,
+      1,
+      "Correctly updated babybell $_",
+    );
+  }
+
+  is ($rs->count, 10, '10 artists present');
+
+  my $orig_debug = $schema->storage->debug;
+  $schema->storage->debug(1);
+  my $query_count;
+  $schema->storage->debugcb(sub { $query_count++ });
+
+  $query_count = 0;
+  $complex_rs->delete;
+
+  is ($query_count, 1, 'One delete query fired');
+  is ($rs->count, 0, '10 Artists correctly deleted');
+
+  $rs->create({
+    name => 'baby_with_cd',
+    cds => [ { title => 'babeeeeee', year => 2013 } ],
+  });
+  is ($rs->count, 1, 'Artist with cd created');
+
+  $query_count = 0;
+  $schema->resultset('CD')->search_related('artist',
+    { 'artist.name' => { -like => 'baby_with_%' } }
+  )->delete;
+  is ($query_count, 1, 'And one more delete query fired');
+  is ($rs->count, 0, 'Artist with cd deleted');
+
+  $schema->storage->debugcb(undef);
+  $schema->storage->debug($orig_debug);
 }
 
 ZEROINSEARCH: {
@@ -386,9 +439,9 @@ ZEROINSEARCH: {
     # kill our $dbh
     $schema_autorecon->storage->_dbh(undef);
 
-    TODO: {
+    {
       local $TODO = "Perl $] is known to leak like a sieve"
-        if DBIx::Class::_ENV_::PEEPEENESS();
+        if DBIx::Class::_ENV_::PEEPEENESS;
 
       ok (! defined $orig_dbh, 'Parent $dbh handle is gone');
     }
@@ -410,9 +463,9 @@ ZEROINSEARCH: {
     # try to do something dbic-esque
     $rs->create({ name => "Hardcore Forker $$" });
 
-    TODO: {
+    {
       local $TODO = "Perl $] is known to leak like a sieve"
-        if DBIx::Class::_ENV_::PEEPEENESS();
+        if DBIx::Class::_ENV_::PEEPEENESS;
 
       ok (! defined $orig_dbh, 'DBIC operation triggered reconnect - old $dbh is gone');
     }

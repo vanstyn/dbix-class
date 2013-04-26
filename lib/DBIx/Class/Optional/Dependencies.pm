@@ -106,10 +106,6 @@ my $rdbms_firebird_odbc = {
 };
 
 my $reqs = {
-  dist => {
-    #'Module::Install::Pod::Inherit' => '0.01',
-  },
-
   replicated => {
     req => $replicated,
     pod => {
@@ -146,16 +142,9 @@ my $reqs = {
     },
   },
 
-  test_admin_script => {
-    req => {
-      %$admin_script,
-      ($^O eq 'MSWin32' ? ('Win32::ShellQuote' => 0) : ()),
-    }
-  },
-
   deploy => {
     req => {
-      'SQL::Translator'           => '0.11006',
+      'SQL::Translator'           => '0.11016',
     },
     pod => {
       title => 'Storage::DBI::deploy()',
@@ -186,20 +175,35 @@ my $reqs = {
     },
   },
 
-  test_notabs => {
+  test_whitespace => {
     req => {
+      'Test::EOL'                 => '1.0',
       'Test::NoTabs'              => '0.9',
     },
   },
 
-  test_eol => {
+  test_strictures => {
     req => {
-      'Test::EOL'                 => '1.0',
+      'Test::Strict'              => '0.20',
     },
   },
 
   test_prettydebug => {
     req => $json_any,
+  },
+
+  test_admin_script => {
+    req => {
+      %$admin_script,
+      'JSON' => 0,
+      'JSON::XS' => 0,
+      $^O eq 'MSWin32'
+        # for t/admin/10script.t
+        ? ('Win32::ShellQuote' => 0)
+        # DWIW does not compile (./configure even) on win32
+        : ('JSON::DWIW' => 0 )
+      ,
+    }
   },
 
   test_leaks => {
@@ -242,7 +246,6 @@ my $reqs = {
 
   test_cdbicompat => {
     req => {
-      'Class::DBI' => 0,
       'Class::DBI::Plugin::DeepAbstractSearch' => '0',
       %$datetime_basic,
       'Time::Piece::MySQL'        => '0',
@@ -606,8 +609,23 @@ my $reqs = {
     },
   },
 
+  dist_dir => {
+    req => {
+      'ExtUtils::MakeMaker' => '6.64',
+      'Pod::Inherit'        => '0.90',
+      'Pod::Tree'           => '0',
+    }
+  },
+
+  dist_upload => {
+    req => {
+      'CPAN::Uploader' => '0.103001',
+    },
+  },
+
 };
 
+our %req_availability_cache;
 
 sub req_list_for {
   my ($class, $group) = @_;
@@ -622,7 +640,16 @@ sub req_list_for {
 }
 
 
-our %req_availability_cache;
+sub die_unless_req_ok_for {
+  my ($class, $group) = @_;
+
+  Carp::croak "die_unless_req_ok_for() expects a requirement group name"
+    unless $group;
+
+  $class->_check_deps($group)->{status}
+    or die sprintf( "Required modules missing, unable to continue: %s\n", $class->_check_deps($group)->{missing} );
+}
+
 sub req_ok_for {
   my ($class, $group) = @_;
 
@@ -698,13 +725,9 @@ sub req_group_list {
 
 # This is to be called by the author only (automatically in Makefile.PL)
 sub _gen_pod {
-  my ($class, $distver) = @_;
+  my ($class, $distver, $pod_dir) = @_;
 
-  my $modfn = __PACKAGE__ . '.pm';
-  $modfn =~ s/\:\:/\//g;
-
-  my $podfn = __FILE__;
-  $podfn =~ s/\.pm$/\.pod/;
+  die "No POD root dir supplied" unless $pod_dir;
 
   $distver ||=
     eval { require DBIx::Class; DBIx::Class->VERSION; }
@@ -716,6 +739,17 @@ sub _gen_pod {
 "halted\n\n" . $@ .
 "\n\n---------------------------------------------------------------------\n"
   ;
+
+  # do not ask for a recent version, use 1.x API calls
+  # this *may* execute on a smoker with old perl or whatnot
+  require File::Path;
+
+  (my $modfn = __PACKAGE__ . '.pm') =~ s|::|/|g;
+
+  (my $podfn = "$pod_dir/$modfn") =~ s/\.pm$/\.pod/;
+  (my $dir = $podfn) =~ s|/[^/]+$||;
+
+  File::Path::mkpath([$dir]);
 
   my $sqltver = $class->req_list_for ('deploy')->{'SQL::Translator'}
     or die "Hrmm? No sqlt dep?";
@@ -797,7 +831,7 @@ EOD
     '=head2 req_group_list',
     '=over',
     '=item Arguments: none',
-    '=item Returns: \%list_of_requirement_groups',
+    '=item Return Value: \%list_of_requirement_groups',
     '=back',
     <<'EOD',
 This method should be used by DBIx::Class packagers, to get a hashref of all
@@ -808,7 +842,7 @@ EOD
     '=head2 req_list_for',
     '=over',
     '=item Arguments: $group_name',
-    '=item Returns: \%list_of_module_version_pairs',
+    '=item Return Value: \%list_of_module_version_pairs',
     '=back',
     <<'EOD',
 This method should be used by DBIx::Class extension authors, to determine the
@@ -820,7 +854,7 @@ EOD
     '=head2 req_ok_for',
     '=over',
     '=item Arguments: $group_name',
-    '=item Returns: 1|0',
+    '=item Return Value: 1|0',
     '=back',
     <<'EOD',
 Returns true or false depending on whether all modules required by
@@ -830,7 +864,7 @@ EOD
     '=head2 req_missing_for',
     '=over',
     '=item Arguments: $group_name',
-    '=item Returns: $error_message_string',
+    '=item Return Value: $error_message_string',
     '=back',
     <<"EOD",
 Returns a single line string suitable for inclusion in larger error messages.
@@ -847,10 +881,20 @@ The author is expected to prepend the necessary text to this message before
 returning the actual error seen by the user.
 EOD
 
+    '=head2 die_unless_req_ok_for',
+    '=over',
+    '=item Arguments: $group_name',
+    '=back',
+    <<'EOD',
+Checks if L</req_ok_for> passes for the supplied C<$group_name>, and
+in case of failure throws an exception including the information
+from L</req_missing_for>.
+EOD
+
     '=head2 req_errorlist_for',
     '=over',
     '=item Arguments: $group_name',
-    '=item Returns: \%list_of_loaderrors_per_module',
+    '=item Return Value: \%list_of_loaderrors_per_module',
     '=back',
     <<'EOD',
 Returns a hashref containing the actual errors that occured while attempting
@@ -864,6 +908,7 @@ EOD
 
   open (my $fh, '>', $podfn) or Carp::croak "Unable to write to $podfn: $!";
   print $fh join ("\n\n", @chunks);
+  print $fh "\n";
   close ($fh);
 }
 

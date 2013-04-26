@@ -5,7 +5,8 @@ use strict;
 use warnings;
 use DBICTest::RunMode;
 use DBICTest::Schema;
-use DBICTest::Util qw/populate_weakregistry assert_empty_weakregistry local_umask/;
+use DBICTest::Util::LeakTracer qw/populate_weakregistry assert_empty_weakregistry/;
+use DBICTest::Util 'local_umask';
 use Carp;
 use Path::Class::File ();
 use File::Spec;
@@ -60,12 +61,25 @@ our ($global_lock_fh, $global_exclusive_lock);
 sub import {
     my $self = shift;
 
-    my $lockpath = DBICTest::RunMode->tmpdir->file('.dbictest_global.lock');
+    my $tmpdir = DBICTest::RunMode->tmpdir;
+    my $lockpath = $tmpdir->file('.dbictest_global.lock');
 
     {
       my $u = local_umask(0); # so that the file opens as 666, and any user can lock
-      sysopen ($global_lock_fh, $lockpath, O_RDWR|O_CREAT)
-        or die "Unable to open $lockpath: $!";
+      sysopen ($global_lock_fh, $lockpath, O_RDWR|O_CREAT) or do {
+        my $err = $!;
+
+        my @x_tests = map { (defined $_) ? ( $_ ? 1 : 0 ) : 'U' } map {(-e, -d, -f, -r, -w, -x, -o)} ($tmpdir, $lockpath);
+
+        die sprintf <<"EOE", $lockpath, $err, scalar $>, scalar $), (stat($tmpdir))[4,5,2], @x_tests;
+Unable to open %s: %s
+Process EUID/EGID: %s / %s
+TmpDir UID/GID:    %s / %s
+TmpDir StatMode:   %o
+TmpDir X-tests:    -e:%s -d:%s -f:%s -r:%s -w:%s -x:%s -o:%s
+TmpFile X-tests:   -e:%s -d:%s -f:%s -r:%s -w:%s -x:%s -o:%s
+EOE
+      };
     }
 
     for (@_) {
@@ -173,6 +187,15 @@ sub _database {
         # no fsync on commit
         $dbh->do ('PRAGMA synchronous = OFF');
 
+        if ($ENV{DBICTEST_SQLITE_REVERSE_DEFAULT_ORDER}) {
+
+          $storage->throw_exception(
+            'PRAGMA reverse_unordered_selects does not work correctly before libsqlite 3.7.9'
+          ) if $storage->_server_info->{normalized_dbms_version} < 3.007009;
+
+          $dbh->do ('PRAGMA reverse_unordered_selects = ON');
+        }
+
         # set a *DBI* disconnect callback, to make sure the physical SQLite
         # file is still there (i.e. the test does not attempt to delete
         # an open database, which fails on Win32)
@@ -189,7 +212,7 @@ sub _database {
 }
 
 sub __mk_disconnect_guard {
-  return if DBIx::Class::_ENV_::PEEPEENESS(); # leaks handles, delaying DESTROY, can't work right
+  return if DBIx::Class::_ENV_::PEEPEENESS; # leaks handles, delaying DESTROY, can't work right
 
   my $db_file = shift;
   return unless -f $db_file;
@@ -314,6 +337,9 @@ sub deploy_schema {
     my $schema = shift;
     my $args = shift || {};
 
+    local $schema->storage->{debug}
+      if ($ENV{TRAVIS}||'') eq 'true';
+
     if ($ENV{"DBICTEST_SQLT_DEPLOY"}) {
         $schema->deploy($args);
     } else {
@@ -341,6 +367,9 @@ the tables with test data.
 sub populate_schema {
     my $self = shift;
     my $schema = shift;
+
+    local $schema->storage->{debug}
+      if ($ENV{TRAVIS}||'') eq 'true';
 
     $schema->populate('Genre', [
       [qw/genreid name/],

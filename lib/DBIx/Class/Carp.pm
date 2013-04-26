@@ -1,4 +1,5 @@
-package DBIx::Class::Carp;
+package # hide from pause
+  DBIx::Class::Carp;
 
 use strict;
 use warnings;
@@ -14,8 +15,10 @@ BEGIN {
   ;
 }
 
+# load Carp early to prevent tickling of the ::Internal stash being
+# interpreted as "Carp is already loaded" by some braindead loader
 use Carp ();
-use namespace::clean ();
+$Carp::Internal{ (__PACKAGE__) }++;
 
 sub __find_caller {
   my ($skip_pattern, $class) = @_;
@@ -27,9 +30,25 @@ sub __find_caller {
     if $skip_class_data;
 
   my $fr_num = 1; # skip us and the calling carp*
-  my @f;
+
+  my (@f, $origin);
   while (@f = caller($fr_num++)) {
-    last unless $f[0] =~ $skip_pattern;
+
+    next if
+      ( $f[3] eq '(eval)' or $f[3] =~ /::__ANON__$/ );
+
+    $origin ||= (
+      $f[3] =~ /^ (.+) :: ([^\:]+) $/x
+        and
+      ! $Carp::Internal{$1}
+        and
+#############################
+# Need a way to parameterize this for Carp::Skip
+      $1 !~ /^(?: DBIx::Class::Storage::BlockRunner | Context::Preserve | Try::Tiny | Class::Accessor::Grouped | Class::C3::Componentised | Module::Runtime )$/x
+        and
+      $2 !~ /^(?: throw_exception | carp | carp_unique | carp_once | dbh_do | txn_do | with_deferred_fk_checks)$/x
+#############################
+    ) ? $f[3] : undef;
 
     if (
       $f[0]->can('_skip_namespace_frames')
@@ -38,16 +57,19 @@ sub __find_caller {
     ) {
       $skip_pattern = qr/$skip_pattern|$extra_skip/;
     }
+
+    last if $f[0] !~ $skip_pattern;
   }
 
-  my ($ln, $calling) = @f # if empty - nothing matched - full stack
-    ? ( "at $f[1] line $f[2]", $f[3] )
-    : ( Carp::longmess(), '{UNKNOWN}' )
+  my $site = @f # if empty - nothing matched - full stack
+    ? "at $f[1] line $f[2]"
+    : Carp::longmess()
   ;
+  $origin ||= '{UNKNOWN}';
 
   return (
-    $ln,
-    $calling =~ /::/ ? "$calling(): " : "$calling: ", # cargo-cult from Carp::Clan
+    $site,
+    $origin =~ /::/ ? "$origin(): " : "$origin: ", # cargo-cult from Carp::Clan
   );
 };
 
@@ -68,8 +90,8 @@ sub import {
   my $into = caller;
 
   $skip_pattern = $skip_pattern
-    ? qr/ ^ $into $ | $skip_pattern /xo
-    : qr/ ^ $into $ /xo
+    ? qr/ ^ $into $ | $skip_pattern /x
+    : qr/ ^ $into $ /x
   ;
 
   no strict 'refs';
@@ -114,7 +136,7 @@ sub import {
     ## FIXME FIXME FIXME - something is tripping up V::M on 5.8.1, leading
     # to segfaults. When n::c/B::H::EndOfScope is rewritten in terms of tie()
     # see if this starts working
-    unless DBIx::Class::_ENV_::BROKEN_NAMESPACE_CLEAN();
+    unless DBIx::Class::_ENV_::BROKEN_NAMESPACE_CLEAN;
 }
 
 sub unimport {

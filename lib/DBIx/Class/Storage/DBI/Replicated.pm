@@ -317,8 +317,6 @@ my $method_dispatch = {
     sql_maker_class
     _execute
     _do_query
-    _sth
-    _dbh_sth
     _dbh_execute
   /, Class::MOP::Class->initialize('DBIx::Class::Storage::DBIHacks')->get_method_list ],
   reader => [qw/
@@ -332,14 +330,16 @@ my $method_dispatch = {
     _arm_global_destructor
     _verify_pid
 
-    source_bind_attributes
-
     get_use_dbms_capability
     set_use_dbms_capability
     get_dbms_capability
     set_dbms_capability
     _dbh_details
     _dbh_get_info
+
+    _determine_connector_driver
+    _describe_connection
+    _warn_undetermined_driver
 
     sql_limit_dialect
     sql_quote_char
@@ -357,7 +357,8 @@ my $method_dispatch = {
     _is_binary_type
     _is_text_lob_type
 
-    sth
+    _prepare_sth
+    _bind_sth_params
   /,(
     # the capability framework
     # not sure if CMOP->initialize does evil things to DBIC::S::DBI, fix if a problem
@@ -396,7 +397,7 @@ if (DBIx::Class::_ENV_::DBICTEST) {
 for my $method (@{$method_dispatch->{unimplemented}}) {
   __PACKAGE__->meta->add_method($method, sub {
     my $self = shift;
-    $self->throw_exception("$method must not be called on ".(blessed $self).' objects');
+    $self->throw_exception("$method() must not be called on ".(blessed $self).' objects');
   });
 }
 
@@ -444,6 +445,11 @@ C<pool_type>, C<pool_args>, C<balancer_type> and C<balancer_args>.
 
 around connect_info => sub {
   my ($next, $self, $info, @extra) = @_;
+
+  $self->throw_exception(
+    'connect_info can not be retrieved from a replicated storage - '
+  . 'accessor must be called on a specific pool instance'
+  ) unless defined $info;
 
   my $merge = Hash::Merge->new('LEFT_PRECEDENT');
 

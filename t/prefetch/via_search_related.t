@@ -128,9 +128,6 @@ lives_ok (sub {
     is($rs->all, 1, 'distinct with prefetch (objects)');
     is($rs->count, 1, 'distinct with prefetch (count)');
 
-  TODO: {
-    local $TODO = "This makes another 2 trips to the database, it can't be right";
-
     $queries = 0;
     $schema->storage->debugcb ($debugcb);
     $schema->storage->debug (1);
@@ -139,12 +136,39 @@ lives_ok (sub {
     is($rs->search_related('cds')->all, 2, 'prefetched distinct with prefetch (objects)');
     is($rs->search_related('cds')->count, 2, 'prefetched distinct with prefetch (count)');
 
-    is ($queries, 0, 'No extra queries fired (prefetch survives search_related)');
+    {
+      local $TODO = "This makes another 2 trips to the database, it can't be right";
+      is ($queries, 0, 'No extra queries fired (prefetch survives search_related)');
+    }
 
     $schema->storage->debugcb (undef);
     $schema->storage->debug ($orig_debug);
-  }
-
 }, 'distinct generally works with prefetch on deep search_related chains');
+
+# pathological "user knows what they're doing" case
+# lifted from production somewhere
+{
+  $schema->resultset('CD')
+   ->search({ cdid => [1,2] })
+    ->search_related('tracks', { position => [3,1] })
+     ->delete_all;
+
+  my $rs = $schema->resultset('CD')->search_related('tracks', {}, {
+    group_by => 'me.title',
+    columns => { title => 'me.title', max_trk => \ 'MAX(tracks.position)' },
+  });
+
+  is_deeply(
+    $rs->all_hri,
+    [
+      { title => "Caterwaulin' Blues", max_trk => 3 },
+      { title => "Come Be Depressed With Us", max_trk => 3 },
+      { title => "Forkful of bees", max_trk => 1 },
+      { title => "Generic Manufactured Singles", max_trk => 3 },
+      { title => "Spoonful of bees", max_trk => 1 },
+    ],
+    'Expected nonsense',
+  );
+}
 
 done_testing;

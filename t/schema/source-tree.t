@@ -17,114 +17,152 @@ is_deeply($schema->source_tree, {
   ArtistSubclass => {},
   ArtistUndirectedMap => {
     Artist => {
+      dep_of => "ArtistUndirectedMap",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     }
   },
   Artwork => {
     CD => {
+      dep_of => "Artwork",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Genre => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Track => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
   Artwork_to_Artist => {
     Artist => {
+      dep_of => "Artwork_to_Artist",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Artwork => {
+      dep_of => "Artwork_to_Artist",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     CD => {
+      dep_of => "Artwork",
       depth => 1,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Genre => {
+      dep_of => "CD",
       depth => 2,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Track => {
+      dep_of => "CD",
       depth => 2,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
   BindType => {},
   Bookmark => {
     Link => {
+      dep_of => "Bookmark",
       depth => 0,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
   BooksInLibrary => {
     Owners => {
+      dep_of => "BooksInLibrary",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     }
   },
   CD => {
     Genre => {
+      dep_of => "CD",
       depth => 0,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Track => {
+      dep_of => "CD",
       depth => 0,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
   CD_to_Producer => {
     CD => {
+      dep_of => "CD_to_Producer",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Genre => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Producer => {
+      dep_of => "CD_to_Producer",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Track => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
   Collection => {},
   CollectionObject => {
     Collection => {
+      dep_of => "CollectionObject",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     TypedObject => {
+      dep_of => "CollectionObject",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     }
   },
@@ -132,8 +170,10 @@ is_deeply($schema->source_tree, {
   Dummy => {},
   Employee => {
     Encoded => {
+      dep_of => "Employee",
       depth => 0,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
@@ -142,131 +182,177 @@ is_deeply($schema->source_tree, {
   EventTZ => {},
   ForceForeign => {
     Artist => {
+      dep_of => "ForceForeign",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     }
   },
   FourKeys => {},
   FourKeys_to_TwoKeys => {
     Artist => {
+      dep_of => "TwoKeys",
       depth => 1,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     CD => {
+      dep_of => "TwoKeys",
       depth => 1,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     FourKeys => {
+      dep_of => "FourKeys_to_TwoKeys",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Genre => {
+      dep_of => "CD",
       depth => 2,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Track => {
+      dep_of => "CD",
       depth => 2,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     TwoKeys => {
+      dep_of => "FourKeys_to_TwoKeys",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     }
   },
   Genre => {},
   Image => {
     Artwork => {
+      dep_of => "Image",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     CD => {
+      dep_of => "Artwork",
       depth => 1,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Genre => {
+      dep_of => "CD",
       depth => 2,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Track => {
+      dep_of => "CD",
       depth => 2,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
   LinerNotes => {
     CD => {
+      dep_of => "LinerNotes",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Genre => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Track => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
   Link => {},
   LyricVersion => {
     CD => {
+      dep_of => "Track",
       depth => 2,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Lyrics => {
+      dep_of => "LyricVersion",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Track => {
+      dep_of => "Lyrics",
       depth => 1,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Year1999CDs => {
+      dep_of => "Track",
       depth => 2,
       for_view => 0,
+      hard => 1,
       is_view => 1
     },
     Year2000CDs => {
+      dep_of => "Track",
       depth => 2,
       for_view => 0,
+      hard => 1,
       is_view => 1
     }
   },
   Lyrics => {
     CD => {
+      dep_of => "Track",
       depth => 1,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Track => {
+      dep_of => "Lyrics",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Year1999CDs => {
+      dep_of => "Track",
       depth => 1,
       for_view => 0,
+      hard => 1,
       is_view => 1
     },
     Year2000CDs => {
+      dep_of => "Track",
       depth => 1,
       for_view => 0,
+      hard => 1,
       is_view => 1
     }
   },
@@ -278,8 +364,10 @@ is_deeply($schema->source_tree, {
   SelfRef => {},
   SelfRefAlias => {
     SelfRef => {
+      dep_of => "SelfRefAlias",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     }
   },
@@ -288,36 +376,48 @@ is_deeply($schema->source_tree, {
   SourceNameArtists => {},
   Tag => {
     CD => {
+      dep_of => "Tag",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Genre => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Track => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
   TimestampPrimaryKey => {},
   Track => {
     CD => {
+      dep_of => "Track",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Year1999CDs => {
+      dep_of => "Track",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 1
     },
     Year2000CDs => {
+      dep_of => "Track",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 1
     }
   },
@@ -325,23 +425,31 @@ is_deeply($schema->source_tree, {
   TwoKeyTreeLike => {},
   TwoKeys => {
     Artist => {
+      dep_of => "TwoKeys",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     CD => {
+      dep_of => "TwoKeys",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Genre => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Track => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
@@ -351,25 +459,33 @@ is_deeply($schema->source_tree, {
 is_deeply($schema->source_tree( type => 'views' ),{
   Year1999CDs => {
     Artist => {
+      dep_of => "Year1999CDs",
       depth => 0,
       for_view => 1,
+      hard => 1,
       is_view => 0
     }
   },
   Year2000CDs => {
     Artist => {
+      dep_of => "Year2000CDs",
       depth => 0,
       for_view => 1,
+      hard => 1,
       is_view => 0
     },
     Genre => {
+      dep_of => "Year2000CDs",
       depth => 0,
       for_view => 1,
+      hard => 0,
       is_view => 0
     },
     Track => {
+      dep_of => "Year2000CDs",
       depth => 0,
       for_view => 1,
+      hard => 0,
       is_view => 0
     }
   }
@@ -380,114 +496,152 @@ is_deeply($schema->source_tree( type => 'all' ),{
   ArtistSubclass => {},
   ArtistUndirectedMap => {
     Artist => {
+      dep_of => "ArtistUndirectedMap",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     }
   },
   Artwork => {
     CD => {
+      dep_of => "Artwork",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Genre => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Track => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
   Artwork_to_Artist => {
     Artist => {
+      dep_of => "Artwork_to_Artist",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Artwork => {
+      dep_of => "Artwork_to_Artist",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     CD => {
+      dep_of => "Artwork",
       depth => 1,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Genre => {
+      dep_of => "CD",
       depth => 2,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Track => {
+      dep_of => "CD",
       depth => 2,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
   BindType => {},
   Bookmark => {
     Link => {
+      dep_of => "Bookmark",
       depth => 0,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
   BooksInLibrary => {
     Owners => {
+      dep_of => "BooksInLibrary",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     }
   },
   CD => {
     Genre => {
+      dep_of => "CD",
       depth => 0,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Track => {
+      dep_of => "CD",
       depth => 0,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
   CD_to_Producer => {
     CD => {
+      dep_of => "CD_to_Producer",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Genre => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Producer => {
+      dep_of => "CD_to_Producer",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Track => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
   Collection => {},
   CollectionObject => {
     Collection => {
+      dep_of => "CollectionObject",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     TypedObject => {
+      dep_of => "CollectionObject",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     }
   },
@@ -495,8 +649,10 @@ is_deeply($schema->source_tree( type => 'all' ),{
   Dummy => {},
   Employee => {
     Encoded => {
+      dep_of => "Employee",
       depth => 0,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
@@ -505,141 +661,191 @@ is_deeply($schema->source_tree( type => 'all' ),{
   EventTZ => {},
   ForceForeign => {
     Artist => {
+      dep_of => "ForceForeign",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     }
   },
   FourKeys => {},
   FourKeys_to_TwoKeys => {
     Artist => {
+      dep_of => "TwoKeys",
       depth => 1,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     CD => {
+      dep_of => "TwoKeys",
       depth => 1,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     FourKeys => {
+      dep_of => "FourKeys_to_TwoKeys",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Genre => {
+      dep_of => "CD",
       depth => 2,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Track => {
+      dep_of => "CD",
       depth => 2,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     TwoKeys => {
+      dep_of => "FourKeys_to_TwoKeys",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     }
   },
   Genre => {},
   Image => {
     Artwork => {
+      dep_of => "Image",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     CD => {
+      dep_of => "Artwork",
       depth => 1,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Genre => {
+      dep_of => "CD",
       depth => 2,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Track => {
+      dep_of => "CD",
       depth => 2,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
   LinerNotes => {
     CD => {
+      dep_of => "LinerNotes",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Genre => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Track => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
   Link => {},
   LyricVersion => {
     Artist => {
+      dep_of => "Year1999CDs",
       depth => 3,
       for_view => 1,
+      hard => 1,
       is_view => 0
     },
     CD => {
+      dep_of => "Track",
       depth => 2,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Lyrics => {
+      dep_of => "LyricVersion",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Track => {
+      dep_of => "Lyrics",
       depth => 1,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Year1999CDs => {
+      dep_of => "Track",
       depth => 2,
       for_view => 0,
+      hard => 1,
       is_view => 1
     },
     Year2000CDs => {
+      dep_of => "Track",
       depth => 2,
       for_view => 0,
+      hard => 1,
       is_view => 1
     }
   },
   Lyrics => {
     Artist => {
+      dep_of => "Year1999CDs",
       depth => 2,
       for_view => 1,
+      hard => 1,
       is_view => 0
     },
     CD => {
+      dep_of => "Track",
       depth => 1,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Track => {
+      dep_of => "Lyrics",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Year1999CDs => {
+      dep_of => "Track",
       depth => 1,
       for_view => 0,
+      hard => 1,
       is_view => 1
     },
     Year2000CDs => {
+      dep_of => "Track",
       depth => 1,
       for_view => 0,
+      hard => 1,
       is_view => 1
     }
   },
@@ -651,8 +857,10 @@ is_deeply($schema->source_tree( type => 'all' ),{
   SelfRef => {},
   SelfRefAlias => {
     SelfRef => {
+      dep_of => "SelfRefAlias",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     }
   },
@@ -661,41 +869,55 @@ is_deeply($schema->source_tree( type => 'all' ),{
   SourceNameArtists => {},
   Tag => {
     CD => {
+      dep_of => "Tag",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Genre => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Track => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
   TimestampPrimaryKey => {},
   Track => {
     Artist => {
+      dep_of => "Year1999CDs",
       depth => 1,
       for_view => 1,
+      hard => 1,
       is_view => 0
     },
     CD => {
+      dep_of => "Track",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Year1999CDs => {
+      dep_of => "Track",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 1
     },
     Year2000CDs => {
+      dep_of => "Track",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 1
     }
   },
@@ -703,48 +925,64 @@ is_deeply($schema->source_tree( type => 'all' ),{
   TwoKeyTreeLike => {},
   TwoKeys => {
     Artist => {
+      dep_of => "TwoKeys",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     CD => {
+      dep_of => "TwoKeys",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Genre => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Track => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
   TypedObject => {},
   Year1999CDs => {
     Artist => {
+      dep_of => "Year1999CDs",
       depth => 0,
       for_view => 1,
+      hard => 1,
       is_view => 0
     }
   },
   Year2000CDs => {
     Artist => {
+      dep_of => "Year2000CDs",
       depth => 0,
       for_view => 1,
+      hard => 1,
       is_view => 0
     },
     Genre => {
+      dep_of => "Year2000CDs",
       depth => 0,
       for_view => 1,
+      hard => 0,
       is_view => 0
     },
     Track => {
+      dep_of => "Year2000CDs",
       depth => 0,
       for_view => 1,
+      hard => 0,
       is_view => 0
     }
   }
@@ -753,18 +991,24 @@ is_deeply($schema->source_tree( type => 'all' ),{
 is_deeply($schema->source_tree({ type => 'views', limit_sources => ['Year2000CDs'] }),{
   Year2000CDs => {
     Artist => {
+      dep_of => "Year2000CDs",
       depth => 0,
       for_view => 1,
+      hard => 1,
       is_view => 0
     },
     Genre => {
+      dep_of => "Year2000CDs",
       depth => 0,
       for_view => 1,
+      hard => 0,
       is_view => 0
     },
     Track => {
+      dep_of => "Year2000CDs",
       depth => 0,
       for_view => 1,
+      hard => 0,
       is_view => 0
     }
   }
@@ -775,114 +1019,152 @@ is_deeply($schema->source_tree( type => 'tables', exclude_sources => [qw(Sequenc
   ArtistSubclass => {},
   ArtistUndirectedMap => {
     Artist => {
+      dep_of => "ArtistUndirectedMap",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     }
   },
   Artwork => {
     CD => {
+      dep_of => "Artwork",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Genre => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Track => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
   Artwork_to_Artist => {
     Artist => {
+      dep_of => "Artwork_to_Artist",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Artwork => {
+      dep_of => "Artwork_to_Artist",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     CD => {
+      dep_of => "Artwork",
       depth => 1,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Genre => {
+      dep_of => "CD",
       depth => 2,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Track => {
+      dep_of => "CD",
       depth => 2,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
   BindType => {},
   Bookmark => {
     Link => {
+      dep_of => "Bookmark",
       depth => 0,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
   BooksInLibrary => {
     Owners => {
+      dep_of => "BooksInLibrary",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     }
   },
   CD => {
     Genre => {
+      dep_of => "CD",
       depth => 0,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Track => {
+      dep_of => "CD",
       depth => 0,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
   CD_to_Producer => {
     CD => {
+      dep_of => "CD_to_Producer",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Genre => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Producer => {
+      dep_of => "CD_to_Producer",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Track => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
   Collection => {},
   CollectionObject => {
     Collection => {
+      dep_of => "CollectionObject",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     TypedObject => {
+      dep_of => "CollectionObject",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     }
   },
@@ -890,8 +1172,10 @@ is_deeply($schema->source_tree( type => 'tables', exclude_sources => [qw(Sequenc
   Dummy => {},
   Employee => {
     Encoded => {
+      dep_of => "Employee",
       depth => 0,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
@@ -900,111 +1184,149 @@ is_deeply($schema->source_tree( type => 'tables', exclude_sources => [qw(Sequenc
   EventTZ => {},
   ForceForeign => {
     Artist => {
+      dep_of => "ForceForeign",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     }
   },
   FourKeys => {},
   FourKeys_to_TwoKeys => {
     FourKeys => {
+      dep_of => "FourKeys_to_TwoKeys",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     TwoKeys => {
+      dep_of => "FourKeys_to_TwoKeys",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     }
   },
   Genre => {},
   Image => {
     Artwork => {
+      dep_of => "Image",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     CD => {
+      dep_of => "Artwork",
       depth => 1,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Genre => {
+      dep_of => "CD",
       depth => 2,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Track => {
+      dep_of => "CD",
       depth => 2,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
   LinerNotes => {
     CD => {
+      dep_of => "LinerNotes",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Genre => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Track => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
   Link => {},
   LyricVersion => {
     CD => {
+      dep_of => "Track",
       depth => 2,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Lyrics => {
+      dep_of => "LyricVersion",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Track => {
+      dep_of => "Lyrics",
       depth => 1,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Year1999CDs => {
+      dep_of => "Track",
       depth => 2,
       for_view => 0,
+      hard => 1,
       is_view => 1
     },
     Year2000CDs => {
+      dep_of => "Track",
       depth => 2,
       for_view => 0,
+      hard => 1,
       is_view => 1
     }
   },
   Lyrics => {
     CD => {
+      dep_of => "Track",
       depth => 1,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Track => {
+      dep_of => "Lyrics",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Year1999CDs => {
+      dep_of => "Track",
       depth => 1,
       for_view => 0,
+      hard => 1,
       is_view => 1
     },
     Year2000CDs => {
+      dep_of => "Track",
       depth => 1,
       for_view => 0,
+      hard => 1,
       is_view => 1
     }
   },
@@ -1016,8 +1338,10 @@ is_deeply($schema->source_tree( type => 'tables', exclude_sources => [qw(Sequenc
   SelfRef => {},
   SelfRefAlias => {
     SelfRef => {
+      dep_of => "SelfRefAlias",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     }
   },
@@ -1025,36 +1349,48 @@ is_deeply($schema->source_tree( type => 'tables', exclude_sources => [qw(Sequenc
   SourceNameArtists => {},
   Tag => {
     CD => {
+      dep_of => "Tag",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Genre => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Track => {
+      dep_of => "CD",
       depth => 1,
       for_view => 0,
+      hard => 0,
       is_view => 0
     }
   },
   TimestampPrimaryKey => {},
   Track => {
     CD => {
+      dep_of => "Track",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 0
     },
     Year1999CDs => {
+      dep_of => "Track",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 1
     },
     Year2000CDs => {
+      dep_of => "Track",
       depth => 0,
       for_view => 0,
+      hard => 1,
       is_view => 1
     }
   },
@@ -1085,7 +1421,6 @@ throws_ok {
   })
   } qr/Unknown option/,
   "Unknown option throws exception";
-
 
 # We probably also want a "collapsed" tree thingy
 

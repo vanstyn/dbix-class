@@ -1628,13 +1628,22 @@ sub source_tree {
                   \@keys, [$source->primary_columns]);
            }
 
-           $sources{$moniker}{foreign_table_deps}{$rel_moniker}++
-              if $fk_constraint && @keys
-                 # calculate dependencies: do not consider deferrable constraints and
-                 # self-references for dependency calculations
-                 && !$rel_info->{attrs}{is_deferrable}
-                 && $rel_moniker && $rel_moniker ne $moniker
+           my $is_dep =
+              $fk_constraint && @keys
+              # calculate dependencies: do not consider deferrable constraints and
+              # self-references for dependency calculations
+              && !$rel_info->{attrs}{is_deferrable}
+              && $rel_moniker && $rel_moniker ne $moniker ? 1 : 0;
 
+           $sources{$moniker}{foreign_table_deps}{$rel_moniker}++
+              if $is_dep;
+
+           my $nullable_keys = 0;
+            $source->column_info($_)->{is_nullable}
+              and $nullable_keys++ for (@keys);
+
+           $sources{$moniker}{foreign_table_hard_deps}{$rel_moniker}++
+              if $is_dep && $nullable_keys == 0;
        }
    }
 
@@ -1642,6 +1651,36 @@ sub source_tree {
      map { $_ => $self->_resolve_deps ($_, \%sources) } (keys %sources)
    }
 }
+
+=head2 dep_ordered_sources
+
+=over 4
+
+=item Arguments: %opts
+
+=item Return Value: @sources
+
+=back
+
+Returns list of sources in dependency order (based on source_tree())
+
+Accepts same arguments as source_tree()
+
+TODO/FIXME/IN PROGESS
+
+=cut
+sub dep_ordered_sources {
+  my $self = shift;
+  my $source_tree = $self->source_tree(@_);
+
+  return sort {
+    $self->source($a)->isa('DBIx::Class::ResultSource::View') <=>
+      $self->source($b)->isa('DBIx::Class::ResultSource::View') ||
+    keys %{ $source_tree->{$a} } <=>
+      keys %{ $source_tree->{$b} }
+  } keys %$source_tree;
+}
+
 
 sub _monikers_for_source_tree_opts {
   my $self = shift;
@@ -1683,7 +1722,7 @@ sub _monikers_for_source_tree_opts {
   elsif($opts->{type} eq 'tables') {
     %monikers =
       map { $_ => 1 }
-      grep { $self->source($_)->isa('DBIx::Class::ResultSource::Table') }
+      grep { ! $self->source($_)->isa('DBIx::Class::ResultSource::View') }
       @sources;
   }
   elsif($opts->{type} eq 'views') {
@@ -1709,6 +1748,7 @@ sub _resolve_deps {
     my $ret = {};
     $seen ||= {};
     my @deps;
+    my $hard;
 
     my $is_view = (( blessed($question) &&
         $question->isa('DBIx::Class::ResultSource::View')
@@ -1754,11 +1794,14 @@ sub _resolve_deps {
         }
         $ret->{$dep} = {
           for_view => $is_view,
+          hard => $answers->{$question}{foreign_table_hard_deps}{$dep} ? 1 : 0,
           is_view => (try {
             # Temp - FIXME - refactor to handle $dep as relname
             $self->source($dep)->isa('DBIx::Class::ResultSource::View') 
           }) ? 1 : 0,
-          depth => 0
+          depth => 0,
+          dep_of => $question,
+          #answers => $answers->{$question}
         };
     }
     return $ret;

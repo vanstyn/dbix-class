@@ -1591,7 +1591,7 @@ sub _handle_source {
     my $fkey_info   = $foreign_key_info{$fkey_name};
     my $rel_moniker = ${$fkey_info}{referenced};
     my $cond        = ${$fkey_info}{cond};
-    my $rel_is_hard = $rel_is_hard && ${$fkey_info}{hard};
+    my $rel_is_hard = $rel_is_hard && ${$fkey_info}{hard} ? 1 : 0;
     #for each loop, $rel_distance is initialized with $distance,
     #when $distance is 0 (i.e. in the first recursive step), the
     #distance is left at 0 in case of a self-reference and set to 1
@@ -1620,27 +1620,16 @@ sub _handle_source {
         $rel_type = undef;
       }
 
-      #collect the attributes of the current relation
-      my $rel_info;
-      $fkey_info{$rel_moniker} ||= [];
-      if ( $rel_distance <= 1 ) {
-        $rel_info = {
-          type          => $rel_type,
-          distance      => $rel_distance,
-          hard          => $rel_is_hard,
-          relation_name => $fkey_name,
-          cond          => $cond,
-        };
-      }
-      else {
-        $rel_info = {
-          type     => $rel_type,
-          distance => $rel_distance,
-          hard     => $rel_is_hard,
-        };
-      }
+      $fkey_info{$rel_moniker} ||= {
+        type     => $rel_type,
+        distance => $rel_distance,
+        hard     => $rel_is_hard,
+      };
+      my $r_info = $fkey_info{$rel_moniker};
 
-      push @{ $fkey_info{$rel_moniker} }, $rel_info;
+      # override attrs by priority (hard first, least distance)
+      $r_info->{hard} = $rel_is_hard if ($rel_is_hard > $r_info->{hard});
+      $r_info->{distance} = $rel_distance if ($rel_distance < $r_info->{distance});
 
       #in case the referenced object is a table, continue recursively
       next
@@ -1664,10 +1653,9 @@ sub _handle_source {
       #The current referenced source has already been handled, but since
       #we do a depth-first transversal, we need to update distance(s)
       #since the current path may be shorter than one encountered before!
-      foreach my $rel_info ( @{ $fkey_info{$rel_moniker} } ) {
+      my $rel_info = $fkey_info{$rel_moniker};
       if ($rel_distance < ${$rel_info}{distance}) {
-          ${$rel_info}{distance} = $rel_distance;
-        }
+        ${$rel_info}{distance} = $rel_distance;
       }
     }
   }

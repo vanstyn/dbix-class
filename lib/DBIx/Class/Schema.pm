@@ -1550,7 +1550,7 @@ sub _get_foreign_key_info {
         my @nullable_info =
           grep {defined}
           map { /([^.]+$)/; $source->column_info($1)->{is_nullable}; }
-          values $rel_info->{cond};
+          values %{$rel_info->{cond}};
 
         $rel_is_hard =
           ( @nullable_info == 0 || grep {/0/} @nullable_info )

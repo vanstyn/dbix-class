@@ -1792,13 +1792,22 @@ sub _resolve_deps {
           $ret->{$_} ||= $subdeps->{$_};
           ++$ret->{$_}->{depth};
         }
+        
+        
+        # -- temp/safe - needed while sqlt parser is still calling us directly
+        my $view = (try{
+          $self->source($dep)->isa('DBIx::Class::ResultSource::View')
+        }) ? 1 : 0;
+        my $hard = (
+          $answers->{$question} &&
+          $answers->{$question}->{foreign_table_hard_deps}->{$dep}
+        ) ? 1 : 0;
+        # --
+        
         $ret->{$dep} = {
           for_view => $is_view,
-          hard => $answers->{$question}{foreign_table_hard_deps}{$dep} ? 1 : 0,
-          is_view => (try {
-            # Temp - FIXME - refactor to handle $dep as relname
-            $self->source($dep)->isa('DBIx::Class::ResultSource::View') 
-          }) ? 1 : 0,
+          hard => $hard,
+          is_view => $view,
           depth => 0,
           dep_of => $question,
           #answers => $answers->{$question}

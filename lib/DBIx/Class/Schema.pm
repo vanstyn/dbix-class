@@ -1574,7 +1574,8 @@ sub source_tree {
       $self->source_registrations->{$_} => $_
    } keys %{$self->source_registrations};
    my %sources;
-   foreach my $moniker (sort keys %$inc_monikers) {
+   # need to iterate everything to be available later
+   foreach my $moniker (sort $self->sources) {
        my $source = $self->source($moniker);
 
        # It's possible to have multiple DBIC sources using the same table
@@ -1648,7 +1649,7 @@ sub source_tree {
    }
 
    return {
-     map { $_ => $self->_resolve_deps ($_, \%sources) } (keys %sources)
+     map { $_ => $self->_resolve_deps ($_, \%sources) } (keys %$inc_monikers)
    }
 }
 
@@ -1787,13 +1788,7 @@ sub _resolve_deps {
         else {
             $next_dep = $dep;
         }
-        my $subdeps = $self->_resolve_deps( $next_dep, $answers, \%seen );
-        for ( keys %$subdeps ) {
-          $ret->{$_} ||= $subdeps->{$_};
-          ++$ret->{$_}->{depth};
-        }
-        
-        
+
         # -- temp/safe - needed while sqlt parser is still calling us directly
         my $view = (try{
           $self->source($dep)->isa('DBIx::Class::ResultSource::View')
@@ -1804,6 +1799,9 @@ sub _resolve_deps {
         ) ? 1 : 0;
         # --
         
+        # By rule, a view dep to a real table cannot be hard
+        $hard = 0 if ($view && ! $is_view);
+
         $ret->{$dep} = {
           for_view => $is_view,
           hard => $hard,
@@ -1812,6 +1810,14 @@ sub _resolve_deps {
           dep_of => $question,
           #answers => $answers->{$question}
         };
+
+        my $subdeps = $self->_resolve_deps( $next_dep, $answers, \%seen );
+        for ( keys %$subdeps ) {
+          ++$subdeps->{$_}->{depth};
+          # can't be hard unless intermediate deps are also hard
+          $subdeps->{$_}->{hard} = 0 unless ($hard);
+          $ret->{$_} ||= $subdeps->{$_};
+        }
     }
     return $ret;
 }

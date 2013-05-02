@@ -1535,7 +1535,8 @@ dependency. Meta data currently consists of the following:
  for_view: true if the dep *belongs* to a virtual view (i.e. the 
            parent is a view) rather than a normal table 
  
- hard: true if the dep is "hard" (FIXME - not implemented)
+ hard: true if the dependency is "hard". For normal tables this
+       means it is tied to a non-nullable foreign key constraint.
 
 Sources with no dependencies map to an empty HashRef.
 
@@ -1552,6 +1553,11 @@ The following arguments can also be supplied:
 
 =item exclude_sources - \@source_names
 
+=item uniq_from - (bool) - if true, only the first source associated with the same physical table
+is included (since multiple sources can use the same table)
+
+=item hard_only - (bool) - if true, only hard dependencies are included
+
 =back
 
 TODO/FIXME/IN PROGESS
@@ -1562,7 +1568,7 @@ sub source_tree {
    my $self = shift;
    my %opts = (ref($_[0]) eq 'HASH') ? %{ $_[0] } : @_; # <-- hashref or hashref-as-list
 
-   my @valid_opts = qw/type limit_sources exclude_sources/;
+   my @valid_opts = qw/type limit_sources exclude_sources uniq_from hard_only/;
    my %valid_opts = map {$_=>1} @valid_opts;
    $valid_opts{$_} or $self->throw_exception(
       "Unknown option '$_'"
@@ -1648,9 +1654,18 @@ sub source_tree {
        }
    }
 
-   return {
+   my $tree = {
      map { $_ => $self->_resolve_deps ($_, \%sources) } (keys %$inc_monikers)
+   };
+
+   if($opts{hard_only}) {
+      for my $source (keys %$tree) {
+        $tree->{$source}{$_}{hard} or delete $tree->{$source}{$_}
+          for (keys %{$tree->{$source}});
+      }
    }
+
+   return $tree;
 }
 
 =head2 dep_ordered_sources
@@ -1674,12 +1689,36 @@ sub dep_ordered_sources {
   my $self = shift;
   my $source_tree = $self->source_tree(@_);
 
+  my $deprank = {};
   return sort {
+    my $a_from = $self->source($a)->from;
+    $a_from = $$a_from if ref $a_from eq 'SCALAR';
+
+    my $b_from = $self->source($b)->from;
+    $b_from = $$b_from if ref $b_from eq 'SCALAR';
+
+    # Views last
     $self->source($a)->isa('DBIx::Class::ResultSource::View') <=>
-      $self->source($b)->isa('DBIx::Class::ResultSource::View') ||
-    keys %{ $source_tree->{$a} } <=>
-      keys %{ $source_tree->{$b} }
+      $self->source($b)->isa('DBIx::Class::ResultSource::View')
+    ||
+    # Main dependency sort
+    $self->_calculate_source_deprank($a,$source_tree,$deprank) <=>
+      $self->_calculate_source_deprank($b,$source_tree,$deprank)
+    ||
+    # sort by table name then source name
+    $a_from cmp $b_from || $a cmp $b
   } keys %$source_tree;
+}
+
+sub _calculate_source_deprank {
+  my ($self, $item, $source_tree, $deprank) = @_;
+  return $deprank->{$item} if defined $deprank->{$item};
+  $deprank->{$item} = 0;
+  for (keys %{$source_tree->{$item} || {} }) {
+    my $depends_on = $self->_calculate_source_deprank($_,$source_tree,$deprank);
+    $deprank->{$item} = $depends_on + 1 if ($depends_on >= $deprank->{$item});
+  }
+  return $deprank->{$item};
 }
 
 
@@ -1714,6 +1753,15 @@ sub _monikers_for_source_tree_opts {
       "source_tree: unknown source name(s) (" . join(', ', sort keys %incl)
       . ") specified in 'limit_sources'"
     ) if ( scalar keys %incl > 0 );
+  }
+
+  if($opts->{uniq_from}) {
+    my %seen = ();
+    @sources = grep {
+      my $from = $self->source($_)->from;
+      $from = $$from if ref $from eq 'SCALAR';
+      ! $seen{$from}++;
+     } sort @sources;
   }
 
   my %monikers = ();

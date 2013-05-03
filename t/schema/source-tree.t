@@ -1469,6 +1469,140 @@ is_deeply($schema->source_tree( type => 'tables', exclude_sources => [qw(Sequenc
 },'got correct source tree for type => tables w/ exclude_sources');
 
 
+is_deeply(
+[$schema->dep_ordered_sources(
+  type => 'tables', uniq_from => 1, hard_only => 1
+)],[
+  "CustomSql",
+  "Artist",
+  "BindType",
+  "Bookmark",
+  "CD",
+  "Collection",
+  "Dummy",
+  "Employee",
+  "Encoded",
+  "Event",
+  "FourKeys",
+  "Genre",
+  "Link",
+  "Money",
+  "NoPrimaryKey",
+  "OneKey",
+  "Owners",
+  "Producer",
+  "SelfRef",
+  "SequenceTest",
+  "Serialized",
+  "TimestampPrimaryKey",
+  "TreeLike",
+  "TwoKeyTreeLike",
+  "TypedObject",
+  "ArtistUndirectedMap",
+  "BooksInLibrary",
+  "Artwork",
+  "CD_to_Producer",
+  "CollectionObject",
+  "ForceForeign",
+  "LinerNotes",
+  "SelfRefAlias",
+  "Tag",
+  "Track",
+  "TwoKeys",
+  "Artwork_to_Artist",
+  "FourKeys_to_TwoKeys",
+  "Image",
+  "Lyrics",
+  "LyricVersion"
+],"got correct source hard table deploy order from dep_ordered_sources()");
+
+######################
+######################
+
+use ViewDeps;
+my $schema2 = ViewDeps->connect('dbi:SQLite::memory:');
+
+is_deeply($schema2->source_tree( type => 'views', limit_deps => 1 ),{
+  ANameArtists => {},
+  AbNameArtists => {
+    ANameArtists => {
+      dep_of => "AbNameArtists",
+      depth => 0,
+      for_view => 1,
+      hard => 1,
+      is_view => 1
+    }
+  },
+  AbaNameArtists => {
+    ANameArtists => {
+      dep_of => "AbNameArtists",
+      depth => 1,
+      for_view => 1,
+      hard => 1,
+      is_view => 1
+    },
+    AbNameArtists => {
+      dep_of => "AbaNameArtists",
+      depth => 0,
+      for_view => 1,
+      hard => 1,
+      is_view => 1
+    }
+  },
+  AbaNameArtistsAnd2010CDsWithManyTracks => {
+    ANameArtists => {
+      dep_of => "AbNameArtists",
+      depth => 1,
+      for_view => 1,
+      hard => 1,
+      is_view => 1
+    },
+    AbNameArtists => {
+      dep_of => "AbaNameArtistsAnd2010CDsWithManyTracks",
+      depth => 0,
+      for_view => 1,
+      hard => 1,
+      is_view => 1
+    },
+    Year2010CDs => {
+      dep_of => "Year2010CDsWithManyTracks",
+      depth => 1,
+      for_view => 1,
+      hard => 1,
+      is_view => 1
+    },
+    Year2010CDsWithManyTracks => {
+      dep_of => "AbaNameArtistsAnd2010CDsWithManyTracks",
+      depth => 0,
+      for_view => 1,
+      hard => 1,
+      is_view => 1
+    }
+  },
+  TrackNumberFives => {},
+  Year2010CDs => {},
+  Year2010CDsWithManyTracks => {
+    Year2010CDs => {
+      dep_of => "Year2010CDsWithManyTracks",
+      depth => 0,
+      for_view => 1,
+      hard => 1,
+      is_view => 1
+    }
+  }
+}, 'ViewDeps source_tree w/ limit_deps on');
+
+is_deeply([$schema2->dep_ordered_sources( type => 'views', limit_deps => 1 )],[
+  "ANameArtists",
+  "TrackNumberFives",
+  "Year2010CDs",
+  "AbNameArtists",
+  "Year2010CDsWithManyTracks",
+  "AbaNameArtists",
+  "AbaNameArtistsAnd2010CDsWithManyTracks"
+], "got correct deploy order for ViewDeps views");
+
+
 throws_ok {
   $schema->source_tree({
     type => 'views',
@@ -1491,6 +1625,5 @@ throws_ok {
   } qr/Unknown option/,
   "Unknown option throws exception";
 
-# We probably also want a "collapsed" tree thingy
 
 done_testing;

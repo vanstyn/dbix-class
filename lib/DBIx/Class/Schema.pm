@@ -1556,7 +1556,10 @@ The following arguments can also be supplied:
 =item uniq_from - (bool) - if true, only the first source associated with the same physical table
 is included (since multiple sources can use the same table)
 
-=item hard_only - (bool) - if true, only hard dependencies are included
+=item hard_only - (bool) - if true, only hard dependencies are included (defaults to false)
+
+=item limit_deps - (bool) - whether or not to apply limit/exclude/type filters to
+returned dependencies (defaults to false - returns all dependencies)
 
 =back
 
@@ -1568,7 +1571,7 @@ sub source_tree {
    my $self = shift;
    my %opts = (ref($_[0]) eq 'HASH') ? %{ $_[0] } : @_; # <-- hashref or hashref-as-list
 
-   my @valid_opts = qw/type limit_sources exclude_sources uniq_from hard_only/;
+   my @valid_opts = qw/type limit_sources exclude_sources uniq_from hard_only limit_deps/;
    my %valid_opts = map {$_=>1} @valid_opts;
    $valid_opts{$_} or $self->throw_exception(
       "Unknown option '$_'"
@@ -1600,10 +1603,11 @@ sub source_tree {
            my $relsource = try { $source->related_source($rel) };
            next unless $relsource;
 
-           ## related sources might be excluded via a {sources} filter
-           ##  FIXME: do we really want the limit/exclude to apply to the *dependencies*
-           ##  or only the top-level sources? No, I don't think we do. Removing (vanstyn)
-           #next unless exists $inc_monikers->{$relsource->source_name};
+           # Exclude related sources included in filter opts if limit_deps is true
+           next if (
+              $opts{limit_deps} &&
+              ! exists $inc_monikers->{$relsource->source_name}
+           );
 
            my $rel_moniker = $r_sources{$relsource};
 
@@ -1697,7 +1701,7 @@ sub dep_ordered_sources {
     my $b_from = $self->source($b)->from;
     $b_from = $$b_from if ref $b_from eq 'SCALAR';
 
-    # Views last
+    # Normal tables first
     $self->source($a)->isa('DBIx::Class::ResultSource::View') <=>
       $self->source($b)->isa('DBIx::Class::ResultSource::View')
     ||
@@ -1790,76 +1794,60 @@ sub _monikers_for_source_tree_opts {
   return \%monikers;
 }
 
+
 # Logic moved/adapted from SQL::Translator::Parser::DBIx::Class
-# TODO: normalize $question first
 sub _resolve_deps {
-    my ( $self, $question, $answers, $seen ) = @_;
+    my ( $self, $source_name, $answers, $seen ) = @_;
     my $ret = {};
     $seen ||= {};
     my @deps;
-    my $hard;
 
-    my $is_view = (( blessed($question) &&
-        $question->isa('DBIx::Class::ResultSource::View')
-      ) || try{
-        $self->source($question)->isa('DBIx::Class::ResultSource::View')
-    }) ? 1 : 0;
+    my $source = $self->source($source_name);
+    my $is_view = $source->isa('DBIx::Class::ResultSource::View') ? 1 : 0;
 
     # copy and bump all deps by one (so we can reconstruct the chain)
     my %seen = map { $_ => $seen->{$_} + 1 } ( keys %$seen );
-    if ($is_view && blessed($question)) {
-        $seen{ $question->result_class } = 1;
-        @deps = keys %{ $question->{deploy_depends_on} };
+    $seen{$source_name} = 1;
+
+    my %view_deploy_deps;
+    if ($source->isa('DBIx::Class::ResultSource::View')) {
+      %view_deploy_deps =
+          map { $_ => 1 }
+          map { $self->source($_)->source_name }
+          keys %{ $source->{deploy_depends_on} };
     }
-    else {
-        $seen{$question} = 1;
-        @deps = keys %{ $answers->{$question}{foreign_table_deps} };
-    }
+
+    push @deps,
+      keys %view_deploy_deps,
+      keys %{ $answers->{$source_name}{foreign_table_deps} };
 
     for my $dep (@deps) {
         if ( $seen->{$dep} ) {
             return {};
         }
-        my $next_dep;
 
-        if ($is_view && blessed($question)) {
-            no warnings 'uninitialized';
-            my ($next_dep_source_name) =
-              grep {
-                $question->schema->source($_)->result_class eq $dep
-                  && !( $question->schema->source($_)
-                    ->isa('DBIx::Class::ResultSource::Table') )
-              } @{ [ $question->schema->sources ] };
-            return {} unless $next_dep_source_name;
-            $next_dep = $question->schema->source($next_dep_source_name);
-        }
-        else {
-            $next_dep = $dep;
-        }
+        my $dep_source = $self->source($dep);
+        my $dep_is_view = $dep_source->isa('DBIx::Class::ResultSource::View') ? 1 : 0;
 
-        # -- temp/safe - needed while sqlt parser is still calling us directly
-        my $view = (try{
-          $self->source($dep)->isa('DBIx::Class::ResultSource::View')
-        }) ? 1 : 0;
-        my $hard = (
-          $answers->{$question} &&
-          $answers->{$question}->{foreign_table_hard_deps}->{$dep}
-        ) ? 1 : 0;
-        # --
+        my $hard =
+          $answers->{$source_name}{foreign_table_hard_deps}{$dep}
+          ? 1 : 0;
         
         # By rule, a view dep to a real table cannot be hard
-        $hard = 0 if ($view && ! $is_view);
+        $hard = 0 if ($dep_is_view && ! $is_view);
+
+        # We consider view deps specified by 'deploy_depends_on' as hard
+        $hard = 1 if ($dep_is_view && $view_deploy_deps{$dep});
 
         $ret->{$dep} = {
+          is_view => $dep_is_view,
           for_view => $is_view,
           hard => $hard,
-          is_view => $view,
           depth => 0,
-          dep_of => $question,
-          #answers => $answers->{$question}
+          dep_of => $source_name,
         };
 
-        my $subdeps = $self->_resolve_deps( $next_dep, $answers, \%seen );
+        my $subdeps = $self->_resolve_deps( $dep, $answers, \%seen );
         for ( keys %$subdeps ) {
           ++$subdeps->{$_}->{depth};
           # can't be hard unless intermediate deps are also hard

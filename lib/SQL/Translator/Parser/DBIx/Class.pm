@@ -96,11 +96,13 @@ sub parse {
     my(%table_monikers, %view_monikers);
     for my $moniker (@monikers){
       my $source = $dbicschema->source($moniker);
-       if ( $source->isa('DBIx::Class::ResultSource::Table') ) {
-         $table_monikers{$moniker}++;
+      my $table_name = $source->name;
+      $table_name = $$table_name if ref $table_name eq 'SCALAR';
+      if ( $source->isa('DBIx::Class::ResultSource::Table') ) {
+         $table_monikers{$moniker} = $table_name;
       } elsif( $source->isa('DBIx::Class::ResultSource::View') ){
           next if $source->is_virtual;
-         $view_monikers{$moniker}++;
+         $view_monikers{$moniker} = $table_name;
       }
     }
 
@@ -287,19 +289,14 @@ sub parse {
 
     }
 
-    # attach the tables to the schema in dependency order
-    my $dependencies = {
-      map { $_ => $dbicschema->_resolve_deps ($_, \%tables) } (keys %tables)
-    };
+    ## attach the tables to the schema in dependency order
+    my @table_order =
+      grep { $_ && $tables{$_} }
+      map { $table_monikers{$_} }
+      $dbicschema->dep_ordered_sources( type => 'tables', uniq_from => 1, hard_only => 1 );
 
-    for my $table (sort
-      {
-        keys %{$dependencies->{$a} || {} } <=> keys %{ $dependencies->{$b} || {} }
-          ||
-        $a cmp $b
-      }
-      (keys %tables)
-    ) {
+    for my $table (@table_order)
+    {
       $schema->add_table ($tables{$table}{object});
       $tables{$table}{source} -> _invoke_sqlt_deploy_hook( $tables{$table}{object} );
 
@@ -319,24 +316,14 @@ EOW
       }
     }
 
-    my %views;
-    my @views = map { $dbicschema->source($_) } keys %view_monikers;
-
-    my $view_dependencies = {
-        map {
-            $_ => $dbicschema->_resolve_deps( $dbicschema->source($_), \%view_monikers )
-          } ( keys %view_monikers )
-    };
-
     my @view_sources =
-      sort {
-        keys %{ $view_dependencies->{ $a->source_name }   || {} } <=>
-          keys %{ $view_dependencies->{ $b->source_name } || {} }
-          || $a->source_name cmp $b->source_name
-      }
       map { $dbicschema->source($_) }
-      keys %view_monikers;
+      grep { $view_monikers{$_} }
+      # limit_deps is probably not needed but makes the order match exactly with
+      # legacy code (at least for tests in t/105view_deps.t)
+      $dbicschema->dep_ordered_sources( type => 'views', limit_deps => 1 );
 
+    my %views;
     foreach my $source (@view_sources)
     {
         my $view_name = $source->name;

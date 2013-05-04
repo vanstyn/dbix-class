@@ -24,6 +24,13 @@ is_deeply($schema->source_tree, {
     }
   },
   Artwork => {
+    Artist => {
+      dep_of => "Year1999CDs",
+      depth => 3,
+      for_view => 1,
+      hard => 0,
+      is_view => 0
+    },
     CD => {
       dep_of => "Artwork",
       depth => 0,
@@ -44,6 +51,20 @@ is_deeply($schema->source_tree, {
       for_view => 0,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   Artwork_to_Artist => {
@@ -81,6 +102,20 @@ is_deeply($schema->source_tree, {
       for_view => 0,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 3,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 3,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   BindType => {},
@@ -103,6 +138,13 @@ is_deeply($schema->source_tree, {
     }
   },
   CD => {
+    Artist => {
+      dep_of => "Year1999CDs",
+      depth => 2,
+      for_view => 1,
+      hard => 0,
+      is_view => 0
+    },
     Genre => {
       dep_of => "CD",
       depth => 0,
@@ -116,9 +158,30 @@ is_deeply($schema->source_tree, {
       for_view => 0,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 1,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 1,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   CD_to_Producer => {
+    Artist => {
+      dep_of => "Year1999CDs",
+      depth => 3,
+      for_view => 1,
+      hard => 0,
+      is_view => 0
+    },
     CD => {
       dep_of => "CD_to_Producer",
       depth => 0,
@@ -146,6 +209,20 @@ is_deeply($schema->source_tree, {
       for_view => 0,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   Collection => {},
@@ -231,10 +308,31 @@ is_deeply($schema->source_tree, {
       for_view => 0,
       hard => 1,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 3,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 3,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   Genre => {},
   Image => {
+    Artist => {
+      dep_of => "Year1999CDs",
+      depth => 4,
+      for_view => 1,
+      hard => 0,
+      is_view => 0
+    },
     Artwork => {
       dep_of => "Image",
       depth => 0,
@@ -262,9 +360,30 @@ is_deeply($schema->source_tree, {
       for_view => 0,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 3,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 3,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   LinerNotes => {
+    Artist => {
+      dep_of => "Year1999CDs",
+      depth => 3,
+      for_view => 1,
+      hard => 0,
+      is_view => 0
+    },
     CD => {
       dep_of => "LinerNotes",
       depth => 0,
@@ -285,6 +404,20 @@ is_deeply($schema->source_tree, {
       for_view => 0,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   Link => {},
@@ -301,6 +434,13 @@ is_deeply($schema->source_tree, {
       depth => 2,
       for_view => 0,
       hard => 1,
+      is_view => 0
+    },
+    Genre => {
+      dep_of => "CD",
+      depth => 3,
+      for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Lyrics => {
@@ -347,6 +487,13 @@ is_deeply($schema->source_tree, {
       hard => 1,
       is_view => 0
     },
+    Genre => {
+      dep_of => "CD",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 0
+    },
     Track => {
       dep_of => "Lyrics",
       depth => 0,
@@ -388,6 +535,13 @@ is_deeply($schema->source_tree, {
   Serialized => {},
   SourceNameArtists => {},
   Tag => {
+    Artist => {
+      dep_of => "Year1999CDs",
+      depth => 3,
+      for_view => 1,
+      hard => 0,
+      is_view => 0
+    },
     CD => {
       dep_of => "Tag",
       depth => 0,
@@ -408,6 +562,20 @@ is_deeply($schema->source_tree, {
       for_view => 0,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   TimestampPrimaryKey => {},
@@ -424,6 +592,13 @@ is_deeply($schema->source_tree, {
       depth => 0,
       for_view => 0,
       hard => 1,
+      is_view => 0
+    },
+    Genre => {
+      dep_of => "CD",
+      depth => 1,
+      for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Year1999CDs => {
@@ -471,6 +646,20 @@ is_deeply($schema->source_tree, {
       for_view => 0,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   TypedObject => {}
@@ -494,6 +683,13 @@ is_deeply($schema->source_tree( type => 'views' ),{
       hard => 1,
       is_view => 0
     },
+    CD => {
+      dep_of => "Track",
+      depth => 1,
+      for_view => 0,
+      hard => 0,
+      is_view => 0
+    },
     Genre => {
       dep_of => "Year2000CDs",
       depth => 0,
@@ -507,6 +703,13 @@ is_deeply($schema->source_tree( type => 'views' ),{
       for_view => 1,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 1,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   }
 },'got correct source tree for type => views');
@@ -524,6 +727,13 @@ is_deeply($schema->source_tree( type => 'all' ),{
     }
   },
   Artwork => {
+    Artist => {
+      dep_of => "Year1999CDs",
+      depth => 3,
+      for_view => 1,
+      hard => 0,
+      is_view => 0
+    },
     CD => {
       dep_of => "Artwork",
       depth => 0,
@@ -544,6 +754,20 @@ is_deeply($schema->source_tree( type => 'all' ),{
       for_view => 0,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   Artwork_to_Artist => {
@@ -581,6 +805,20 @@ is_deeply($schema->source_tree( type => 'all' ),{
       for_view => 0,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 3,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 3,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   BindType => {},
@@ -603,6 +841,13 @@ is_deeply($schema->source_tree( type => 'all' ),{
     }
   },
   CD => {
+    Artist => {
+      dep_of => "Year1999CDs",
+      depth => 2,
+      for_view => 1,
+      hard => 0,
+      is_view => 0
+    },
     Genre => {
       dep_of => "CD",
       depth => 0,
@@ -616,9 +861,30 @@ is_deeply($schema->source_tree( type => 'all' ),{
       for_view => 0,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 1,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 1,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   CD_to_Producer => {
+    Artist => {
+      dep_of => "Year1999CDs",
+      depth => 3,
+      for_view => 1,
+      hard => 0,
+      is_view => 0
+    },
     CD => {
       dep_of => "CD_to_Producer",
       depth => 0,
@@ -646,6 +912,20 @@ is_deeply($schema->source_tree( type => 'all' ),{
       for_view => 0,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   Collection => {},
@@ -731,10 +1011,31 @@ is_deeply($schema->source_tree( type => 'all' ),{
       for_view => 0,
       hard => 1,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 3,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 3,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   Genre => {},
   Image => {
+    Artist => {
+      dep_of => "Year1999CDs",
+      depth => 4,
+      for_view => 1,
+      hard => 0,
+      is_view => 0
+    },
     Artwork => {
       dep_of => "Image",
       depth => 0,
@@ -762,9 +1063,30 @@ is_deeply($schema->source_tree( type => 'all' ),{
       for_view => 0,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 3,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 3,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   LinerNotes => {
+    Artist => {
+      dep_of => "Year1999CDs",
+      depth => 3,
+      for_view => 1,
+      hard => 0,
+      is_view => 0
+    },
     CD => {
       dep_of => "LinerNotes",
       depth => 0,
@@ -785,6 +1107,20 @@ is_deeply($schema->source_tree( type => 'all' ),{
       for_view => 0,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   Link => {},
@@ -801,6 +1137,13 @@ is_deeply($schema->source_tree( type => 'all' ),{
       depth => 2,
       for_view => 0,
       hard => 1,
+      is_view => 0
+    },
+    Genre => {
+      dep_of => "CD",
+      depth => 3,
+      for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Lyrics => {
@@ -847,6 +1190,13 @@ is_deeply($schema->source_tree( type => 'all' ),{
       hard => 1,
       is_view => 0
     },
+    Genre => {
+      dep_of => "CD",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 0
+    },
     Track => {
       dep_of => "Lyrics",
       depth => 0,
@@ -888,6 +1238,13 @@ is_deeply($schema->source_tree( type => 'all' ),{
   Serialized => {},
   SourceNameArtists => {},
   Tag => {
+    Artist => {
+      dep_of => "Year1999CDs",
+      depth => 3,
+      for_view => 1,
+      hard => 0,
+      is_view => 0
+    },
     CD => {
       dep_of => "Tag",
       depth => 0,
@@ -908,6 +1265,20 @@ is_deeply($schema->source_tree( type => 'all' ),{
       for_view => 0,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   TimestampPrimaryKey => {},
@@ -924,6 +1295,13 @@ is_deeply($schema->source_tree( type => 'all' ),{
       depth => 0,
       for_view => 0,
       hard => 1,
+      is_view => 0
+    },
+    Genre => {
+      dep_of => "CD",
+      depth => 1,
+      for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Year1999CDs => {
@@ -971,6 +1349,20 @@ is_deeply($schema->source_tree( type => 'all' ),{
       for_view => 0,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   TypedObject => {},
@@ -991,6 +1383,13 @@ is_deeply($schema->source_tree( type => 'all' ),{
       hard => 1,
       is_view => 0
     },
+    CD => {
+      dep_of => "Track",
+      depth => 1,
+      for_view => 0,
+      hard => 0,
+      is_view => 0
+    },
     Genre => {
       dep_of => "Year2000CDs",
       depth => 0,
@@ -1004,6 +1403,13 @@ is_deeply($schema->source_tree( type => 'all' ),{
       for_view => 1,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 1,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   }
 },'got correct source tree for type => all');
@@ -1017,6 +1423,13 @@ is_deeply($schema->source_tree({ type => 'views', limit_sources => ['Year2000CDs
       hard => 1,
       is_view => 0
     },
+    CD => {
+      dep_of => "Track",
+      depth => 1,
+      for_view => 0,
+      hard => 0,
+      is_view => 0
+    },
     Genre => {
       dep_of => "Year2000CDs",
       depth => 0,
@@ -1030,6 +1443,13 @@ is_deeply($schema->source_tree({ type => 'views', limit_sources => ['Year2000CDs
       for_view => 1,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 1,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   }
 },'got correct source tree for type => views w/ limit_sources');
@@ -1047,6 +1467,13 @@ is_deeply($schema->source_tree( type => 'tables', exclude_sources => [qw(Sequenc
     }
   },
   Artwork => {
+    Artist => {
+      dep_of => "Year1999CDs",
+      depth => 3,
+      for_view => 1,
+      hard => 0,
+      is_view => 0
+    },
     CD => {
       dep_of => "Artwork",
       depth => 0,
@@ -1067,6 +1494,20 @@ is_deeply($schema->source_tree( type => 'tables', exclude_sources => [qw(Sequenc
       for_view => 0,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   Artwork_to_Artist => {
@@ -1104,6 +1545,20 @@ is_deeply($schema->source_tree( type => 'tables', exclude_sources => [qw(Sequenc
       for_view => 0,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 3,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 3,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   BindType => {},
@@ -1126,6 +1581,13 @@ is_deeply($schema->source_tree( type => 'tables', exclude_sources => [qw(Sequenc
     }
   },
   CD => {
+    Artist => {
+      dep_of => "Year1999CDs",
+      depth => 2,
+      for_view => 1,
+      hard => 0,
+      is_view => 0
+    },
     Genre => {
       dep_of => "CD",
       depth => 0,
@@ -1139,9 +1601,30 @@ is_deeply($schema->source_tree( type => 'tables', exclude_sources => [qw(Sequenc
       for_view => 0,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 1,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 1,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   CD_to_Producer => {
+    Artist => {
+      dep_of => "Year1999CDs",
+      depth => 3,
+      for_view => 1,
+      hard => 0,
+      is_view => 0
+    },
     CD => {
       dep_of => "CD_to_Producer",
       depth => 0,
@@ -1169,6 +1652,20 @@ is_deeply($schema->source_tree( type => 'tables', exclude_sources => [qw(Sequenc
       for_view => 0,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   Collection => {},
@@ -1254,10 +1751,31 @@ is_deeply($schema->source_tree( type => 'tables', exclude_sources => [qw(Sequenc
       for_view => 0,
       hard => 1,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 3,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 3,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   Genre => {},
   Image => {
+    Artist => {
+      dep_of => "Year1999CDs",
+      depth => 4,
+      for_view => 1,
+      hard => 0,
+      is_view => 0
+    },
     Artwork => {
       dep_of => "Image",
       depth => 0,
@@ -1285,9 +1803,30 @@ is_deeply($schema->source_tree( type => 'tables', exclude_sources => [qw(Sequenc
       for_view => 0,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 3,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 3,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   LinerNotes => {
+    Artist => {
+      dep_of => "Year1999CDs",
+      depth => 3,
+      for_view => 1,
+      hard => 0,
+      is_view => 0
+    },
     CD => {
       dep_of => "LinerNotes",
       depth => 0,
@@ -1308,6 +1847,20 @@ is_deeply($schema->source_tree( type => 'tables', exclude_sources => [qw(Sequenc
       for_view => 0,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   Link => {},
@@ -1324,6 +1877,13 @@ is_deeply($schema->source_tree( type => 'tables', exclude_sources => [qw(Sequenc
       depth => 2,
       for_view => 0,
       hard => 1,
+      is_view => 0
+    },
+    Genre => {
+      dep_of => "CD",
+      depth => 3,
+      for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Lyrics => {
@@ -1370,6 +1930,13 @@ is_deeply($schema->source_tree( type => 'tables', exclude_sources => [qw(Sequenc
       hard => 1,
       is_view => 0
     },
+    Genre => {
+      dep_of => "CD",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 0
+    },
     Track => {
       dep_of => "Lyrics",
       depth => 0,
@@ -1410,6 +1977,13 @@ is_deeply($schema->source_tree( type => 'tables', exclude_sources => [qw(Sequenc
   Serialized => {},
   SourceNameArtists => {},
   Tag => {
+    Artist => {
+      dep_of => "Year1999CDs",
+      depth => 3,
+      for_view => 1,
+      hard => 0,
+      is_view => 0
+    },
     CD => {
       dep_of => "Tag",
       depth => 0,
@@ -1430,6 +2004,20 @@ is_deeply($schema->source_tree( type => 'tables', exclude_sources => [qw(Sequenc
       for_view => 0,
       hard => 0,
       is_view => 0
+    },
+    Year1999CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
+    },
+    Year2000CDs => {
+      dep_of => "Track",
+      depth => 2,
+      for_view => 0,
+      hard => 0,
+      is_view => 1
     }
   },
   TimestampPrimaryKey => {},
@@ -1446,6 +2034,13 @@ is_deeply($schema->source_tree( type => 'tables', exclude_sources => [qw(Sequenc
       depth => 0,
       for_view => 0,
       hard => 1,
+      is_view => 0
+    },
+    Genre => {
+      dep_of => "CD",
+      depth => 1,
+      for_view => 0,
+      hard => 0,
       is_view => 0
     },
     Year1999CDs => {

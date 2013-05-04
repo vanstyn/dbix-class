@@ -1823,7 +1823,7 @@ sub _resolve_deps {
 
     for my $dep (@deps) {
         if ( $seen->{$dep} ) {
-            return {};
+            next;
         }
 
         my $dep_source = $self->source($dep);
@@ -1839,13 +1839,19 @@ sub _resolve_deps {
         # We consider view deps specified by 'deploy_depends_on' as hard
         $hard = 1 if ($dep_is_view && $view_deploy_deps{$dep});
 
-        $ret->{$dep} = {
+        my $d_info = {
           is_view => $dep_is_view,
           for_view => $is_view,
           hard => $hard,
           depth => 0,
           dep_of => $source_name,
         };
+
+        # hard takes priority if there are multiple deps to the same source
+        $ret->{$dep} = $d_info unless (
+          $ret->{$dep} &&
+          $ret->{$dep}{hard} > $d_info->{hard}
+        );
 
         my $subdeps = $self->_resolve_deps( $dep, $answers, \%seen );
         for ( keys %$subdeps ) {

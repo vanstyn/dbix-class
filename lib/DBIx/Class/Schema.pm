@@ -1646,15 +1646,16 @@ sub source_tree {
               && !$rel_info->{attrs}{is_deferrable}
               && $rel_moniker && $rel_moniker ne $moniker ? 1 : 0;
 
-           $sources{$moniker}{foreign_table_deps}{$rel_moniker}++
-              if $is_dep;
+           if ( $is_dep ) {
+              $sources{$moniker}{foreign_table_deps}{$rel_moniker} ||= {};
+              my $dep_attr = $sources{$moniker}{foreign_table_deps}{$rel_moniker};
 
-           my $nullable_keys = 0;
-            $source->column_info($_)->{is_nullable}
-              and $nullable_keys++ for (@keys);
+              my $nullable_keys = 0;
+              $source->column_info($_)->{is_nullable} 
+                and $nullable_keys++ for (@keys);
 
-           $sources{$moniker}{foreign_table_hard_deps}{$rel_moniker}++
-              if $is_dep && $nullable_keys == 0;
+              $dep_attr->{hard}++ if ($nullable_keys == 0);
+           }
        }
    }
 
@@ -1829,9 +1830,8 @@ sub _resolve_deps {
         my $dep_source = $self->source($dep);
         my $dep_is_view = $dep_source->isa('DBIx::Class::ResultSource::View') ? 1 : 0;
 
-        my $hard =
-          $answers->{$source_name}{foreign_table_hard_deps}{$dep}
-          ? 1 : 0;
+        my $dep_attr = $answers->{$source_name}{foreign_table_deps}{$dep};
+        my $hard = $dep_attr->{hard} ? 1 : 0;
         
         # By rule, a view dep to a real table cannot be hard
         $hard = 0 if ($dep_is_view && ! $is_view);

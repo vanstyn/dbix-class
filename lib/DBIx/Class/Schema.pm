@@ -1556,10 +1556,25 @@ The following arguments can also be supplied:
 =item uniq_from - (bool) - if true, only the first source associated with the same physical table
 is included (since multiple sources can use the same table)
 
-=item hard_only - (bool) - if true, only hard dependencies are included (defaults to false)
-
 =item limit_deps - (bool) - whether or not to apply limit/exclude/type filters to
 returned dependencies (defaults to false - returns all dependencies)
+
+=item include_self - (bool) - Whether or not to include self-dependencies. If true, the extra bool attr 
+'is_self' is added to all deps. (defaults to false)
+
+=item hard_only - (bool) - if true, only hard dependencies are included (defaults to false)
+
+=item deploy_only - (bool) - if true, only deploy dependencies are included (defaults to false)
+
+=item include_check - (CodeRef) - Optional function to be called for each dep. The dep is excluded
+unless the function returns true. It is called with the following argument list:
+
+ 0 - Dep HashRef (also set in $_)
+ 1 - Dep Name
+ 2 - Parent Source Name
+ 3 - Source Tree HashRef
+
+Defaults to undef.
 
 =back
 
@@ -1571,7 +1586,10 @@ sub source_tree {
    my $self = shift;
    my %opts = (ref($_[0]) eq 'HASH') ? %{ $_[0] } : @_; # <-- hashref or hashref-as-list
 
-   my @valid_opts = qw/type limit_sources exclude_sources uniq_from hard_only limit_deps/;
+   my @valid_opts = qw/
+      type limit_sources exclude_sources uniq_from limit_deps
+      include_self hard_only deploy_only include_check
+   /;
    my %valid_opts = map {$_=>1} @valid_opts;
    $valid_opts{$_} or $self->throw_exception(
       "Unknown option '$_'"
@@ -1639,13 +1657,7 @@ sub source_tree {
                   \@keys, [$source->primary_columns]);
            }
 
-           my $is_dep =
-              $fk_constraint && @keys
-              # calculate dependencies: do not consider deferrable constraints and
-              # self-references for dependency calculations
-              && !$rel_info->{attrs}{is_deferrable}
-              && $rel_moniker && $rel_moniker ne $moniker ? 1 : 0;
-
+           my $is_dep = $fk_constraint && @keys && $rel_moniker;
            if ( $is_dep ) {
               $sources{$moniker}{foreign_table_deps}{$rel_moniker} ||= {};
               my $dep_attr = $sources{$moniker}{foreign_table_deps}{$rel_moniker};
@@ -1654,7 +1666,12 @@ sub source_tree {
               $source->column_info($_)->{is_nullable} 
                 and $nullable_keys++ for (@keys);
 
-              $dep_attr->{hard}++ if ($nullable_keys == 0);
+              $dep_attr->{is_self}++ if ($rel_moniker eq $moniker);
+              $dep_attr->{hard}++ unless ($nullable_keys || $dep_attr->{is_self});
+              $dep_attr->{deploy_dep}++ if (
+                $dep_attr->{hard}
+                && !$rel_info->{attrs}{is_deferrable}
+              );
            }
        }
    }
@@ -1663,10 +1680,29 @@ sub source_tree {
      map { $_ => $self->_resolve_deps ($_, \%sources) } (keys %$inc_monikers)
    };
 
-   if($opts{hard_only}) {
-      for my $source (keys %$tree) {
-        $tree->{$source}{$_}{hard} or delete $tree->{$source}{$_}
-          for (keys %{$tree->{$source}});
+   # We're applying options after the fact to make sure we don't interfere with any
+   # of the recursive logic that the tree was built up from.
+   for my $source (keys %$tree) {
+      for my $dep (keys %{$tree->{$source}}) {
+        unless ($opts{include_self}) {
+          delete $tree->{$source}{$dep} if delete $tree->{$source}{$dep}{is_self};
+          next unless ($tree->{$source}{$dep});
+        }
+        if($opts{hard_only}) {
+          delete $tree->{$source}{$dep} unless ($tree->{$source}{$dep}{hard});
+          next unless ($tree->{$source}{$dep});
+        }
+        if($opts{deploy_only}) {
+          delete $tree->{$source}{$dep} unless ($tree->{$source}{$dep}{deploy_dep});
+          next unless ($tree->{$source}{$dep});
+        }
+        # Support extra custom coderef check of whether or not to include the dep:
+        if ($opts{include_check}) {
+          local $_ = $tree->{$source}{$dep};
+          delete $tree->{$source}{$dep} unless (
+            $opts{include_check}->($_,$dep,$source,$tree)
+          );
+        }
       }
    }
 
@@ -1831,21 +1867,21 @@ sub _resolve_deps {
         my $dep_is_view = $dep_source->isa('DBIx::Class::ResultSource::View') ? 1 : 0;
 
         my $dep_attr = $answers->{$source_name}{foreign_table_deps}{$dep};
-        my $hard = $dep_attr->{hard} ? 1 : 0;
-        
+        my $d_info = {
+          is_view     => $dep_is_view,
+          for_view    => $is_view,
+          hard        => $dep_attr->{hard} ? 1 : 0,
+          deploy_dep  => $dep_attr->{deploy_dep} ? 1 : 0,
+          is_self     => $dep_attr->{is_self} ? 1 : 0,
+          depth       => 0,
+          dep_of      => $source_name,
+        };
+
         # By rule, a view dep to a real table cannot be hard
-        $hard = 0 if ($dep_is_view && ! $is_view);
+        $d_info->{hard} = 0 if ($dep_is_view && ! $is_view);
 
         # We consider view deps specified by 'deploy_depends_on' as hard
-        $hard = 1 if ($dep_is_view && $view_deploy_deps{$dep});
-
-        my $d_info = {
-          is_view => $dep_is_view,
-          for_view => $is_view,
-          hard => $hard,
-          depth => 0,
-          dep_of => $source_name,
-        };
+        $d_info->{deploy_dep} = 1 if ($dep_is_view && $view_deploy_deps{$dep});
 
         # hard takes priority if there are multiple deps to the same source
         $ret->{$dep} = $d_info unless (
@@ -1857,7 +1893,7 @@ sub _resolve_deps {
         for ( keys %$subdeps ) {
           ++$subdeps->{$_}->{depth};
           # can't be hard unless intermediate deps are also hard
-          $subdeps->{$_}->{hard} = 0 unless ($hard);
+          $subdeps->{$_}->{hard} = 0 unless ($d_info->{hard});
           $ret->{$_} ||= $subdeps->{$_};
         }
     }

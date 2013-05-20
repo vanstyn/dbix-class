@@ -293,7 +293,7 @@ sub parse {
     my @table_order =
       grep { $_ && $tables{$_} }
       map { $table_monikers{$_} }
-      $dbicschema->dep_ordered_sources( type => 'tables', uniq_from => 1, hard_only => 1 );
+      $dbicschema->dep_ordered_sources( type => 'tables', uniq_from => 1, deploy_only => 1 );
 
     for my $table (@table_order)
     {

@@ -6,6 +6,7 @@ use warnings;
 use base qw/DBIx::Class::Storage::DBI/;
 use mro 'c3';
 
+use DBIx::Class::_Util qw(modver_gt_or_eq sigwarn_silencer);
 use DBIx::Class::Carp;
 use Try::Tiny;
 use namespace::clean;
@@ -49,7 +50,7 @@ An unfortunate chain of events led to DBIx::Class silently hitting the problem
 described in L<RT#79576|https://rt.cpan.org/Public/Bug/Display.html?id=79576>.
 
 In order to trigger the bug condition one needs to supply B<more than one>
-bind value that is an object with overloaded stringification (nummification
+bind value that is an object with overloaded stringification (numification
 is not relevant, only stringification is). When this is the case the internal
 DBIx::Class call to C<< $sth->bind_param >> would be executed in a way that
 triggers the above-mentioned DBD::SQLite bug. As a result all the logs and
@@ -64,8 +65,8 @@ stringifiable object in one CRUD call) is encountered and will issue a warning
 pointing to this section. This warning will be removed 2 years from now,
 around April 2015, You can disable it after you've audited your data by
 setting the C<DBIC_RT79576_NOWARN> environment variable. Note - the warning
-is emited only once per callsite per process and only when the condition in
-question is encountered. Thus it is very unlikey that your logsystem will be
+is emitted only once per callsite per process and only when the condition in
+question is encountered. Thus it is very unlikely that your logsystem will be
 flooded as a result of this.
 
 =back
@@ -152,11 +153,7 @@ sub _ping {
   # older DBD::SQLite does not properly synchronize commit state between
   # the libsqlite and the $dbh
   unless (defined $DBD::SQLite::__DBIC_TXN_SYNC_SANE__) {
-    local $@;
-    $DBD::SQLite::__DBIC_TXN_SYNC_SANE__ = eval { DBD::SQLite->VERSION(1.38_02); 1 }
-      ? 1
-      : 0
-    ;
+    $DBD::SQLite::__DBIC_TXN_SYNC_SANE__ = modver_gt_or_eq('DBD::SQLite', '1.38_02');
   }
 
   # fallback to travesty
@@ -216,7 +213,7 @@ sub _ping {
   # keeps the actual file handle open. We don't really want this to happen,
   # so force-close the handle via DBI itself
   #
-  local $@; # so that we do not clober the real error as set above
+  local $@; # so that we do not clobber the real error as set above
   eval { $dbh->disconnect }; # if it fails - it fails
   undef; # the actual RV of _ping()
 }
@@ -235,52 +232,129 @@ sub deployment_statements {
     $sqltargs->{producer_args}{sqlite_version} = $dver;
   }
 
+  $sqltargs->{quote_identifiers}
+    = !!$self->sql_maker->_quote_chars
+  if ! exists $sqltargs->{quote_identifiers};
+
   $self->next::method($schema, $type, $version, $dir, $sqltargs, @rest);
 }
 
 sub bind_attribute_by_data_type {
-  $_[1] =~ /^ (?: int(?:eger)? | (?:tiny|small|medium)int ) $/ix
-    ? DBI::SQL_INTEGER()
+
+  # According to http://www.sqlite.org/datatype3.html#storageclasses
+  # all numeric types are dynamically allocated up to 8 bytes per
+  # individual value
+  # Thus it should be safe and non-wasteful to bind everything as
+  # SQL_BIGINT and have SQLite deal with storage/comparisons however
+  # it deems correct
+  $_[1] =~ /^ (?: int(?:[1248]|eger)? | (?:tiny|small|medium|big)int ) $/ix
+    ? DBI::SQL_BIGINT()
     : undef
   ;
 }
 
+# FIXME - what the flying fuck... work around RT#76395
+# DBD::SQLite warns on binding >32 bit values with 32 bit IVs
+sub _dbh_execute {
+  if (
+    (
+      DBIx::Class::_ENV_::IV_SIZE < 8
+        or
+      DBIx::Class::_ENV_::OS_NAME eq 'MSWin32'
+    )
+      and
+    ! defined $DBD::SQLite::__DBIC_CHECK_dbd_mishandles_bound_BIGINT
+  ) {
+    $DBD::SQLite::__DBIC_CHECK_dbd_mishandles_bound_BIGINT = (
+      modver_gt_or_eq('DBD::SQLite', '1.37')
+    ) ? 1 : 0;
+  }
+
+  local $SIG{__WARN__} = sigwarn_silencer( qr/
+    \Qdatatype mismatch: bind\E \s (?:
+      param \s+ \( \d+ \) \s+ [-+]? \d+ (?: \. 0*)? \Q as integer\E
+        |
+      \d+ \s type \s @{[ DBI::SQL_BIGINT() ]} \s as \s [-+]? \d+ (?: \. 0*)?
+    )
+  /x ) if (
+    (
+      DBIx::Class::_ENV_::IV_SIZE < 8
+        or
+      DBIx::Class::_ENV_::OS_NAME eq 'MSWin32'
+    )
+      and
+    $DBD::SQLite::__DBIC_CHECK_dbd_mishandles_bound_BIGINT
+  );
+
+  shift->next::method(@_);
+}
+
 # DBD::SQLite (at least up to version 1.31 has a bug where it will
-# non-fatally nummify a string value bound as an integer, resulting
+# non-fatally numify a string value bound as an integer, resulting
 # in insertions of '0' into supposed-to-be-numeric fields
 # Since this can result in severe data inconsistency, remove the
-# bind attr if such a sitation is detected
+# bind attr if such a situation is detected
 #
 # FIXME - when a DBD::SQLite version is released that eventually fixes
-# this sutiation (somehow) - no-op this override once a proper DBD
+# this situation (somehow) - no-op this override once a proper DBD
 # version is detected
 sub _dbi_attrs_for_bind {
   my ($self, $ident, $bind) = @_;
 
   my $bindattrs = $self->next::method($ident, $bind);
 
+  if (! defined $DBD::SQLite::__DBIC_CHECK_dbd_can_bind_bigint_values) {
+    $DBD::SQLite::__DBIC_CHECK_dbd_can_bind_bigint_values
+      = modver_gt_or_eq('DBD::SQLite', '1.37') ? 1 : 0;
+  }
+
   # an attempt to detect former effects of RT#79576, bug itself present between
   # 0.08191 and 0.08209 inclusive (fixed in 0.08210 and higher)
   my $stringifiable = 0;
 
-  for (0.. $#$bindattrs) {
+  for my $i (0.. $#$bindattrs) {
 
-    $stringifiable++ if ( length ref $bind->[$_][1] and overload::Method($bind->[$_][1], '""') );
+    $stringifiable++ if ( length ref $bind->[$i][1] and overload::Method($bind->[$i][1], '""') );
 
     if (
-      defined $bindattrs->[$_]
+      defined $bindattrs->[$i]
         and
-      defined $bind->[$_][1]
+      defined $bind->[$i][1]
         and
-      $bindattrs->[$_] eq DBI::SQL_INTEGER()
-        and
-      $bind->[$_][1] !~ /^ [\+\-]? [0-9]+ (?: \. 0* )? $/x
+      grep { $bindattrs->[$i] eq $_ } (
+        DBI::SQL_INTEGER(), DBI::SQL_TINYINT(), DBI::SQL_SMALLINT(), DBI::SQL_BIGINT()
+      )
     ) {
-      carp_unique( sprintf (
-        "Non-integer value supplied for column '%s' despite the integer datatype",
-        $bind->[$_][0]{dbic_colname} || "# $_"
-      ) );
-      undef $bindattrs->[$_];
+      if ( $bind->[$i][1] !~ /^ [\+\-]? [0-9]+ (?: \. 0* )? $/x ) {
+        carp_unique( sprintf (
+          "Non-integer value supplied for column '%s' despite the integer datatype",
+          $bind->[$i][0]{dbic_colname} || "# $i"
+        ) );
+        undef $bindattrs->[$i];
+      }
+      elsif (
+        ! $DBD::SQLite::__DBIC_CHECK_dbd_can_bind_bigint_values
+      ) {
+        # unsigned 32 bit ints have a range of −2,147,483,648 to 2,147,483,647
+        # alternatively expressed as the hexadecimal numbers below
+        # the comparison math will come out right regardless of ivsize, since
+        # we are operating within 31 bits
+        # P.S. 31 because one bit is lost for the sign
+        if ($bind->[$i][1] > 0x7fff_ffff or $bind->[$i][1] < -0x8000_0000) {
+          carp_unique( sprintf (
+            "An integer value occupying more than 32 bits was supplied for column '%s' "
+          . 'which your version of DBD::SQLite (%s) can not bind properly so DBIC '
+          . 'will treat it as a string instead, consider upgrading to at least '
+          . 'DBD::SQLite version 1.37',
+            $bind->[$i][0]{dbic_colname} || "# $i",
+            DBD::SQLite->VERSION,
+          ) );
+          undef $bindattrs->[$i];
+        }
+        else {
+          $bindattrs->[$i] = DBI::SQL_INTEGER()
+        }
+      }
     }
   }
 

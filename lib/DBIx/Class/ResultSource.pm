@@ -84,7 +84,7 @@ created, see L<DBIx::Class::ResultSource::View> for full details.
 =head2 Finding result source objects
 
 As mentioned above, a result source instance is created and stored for
-you when you define a L<Result Class|DBIx::Class::Manual::Glossary/Result Class>.
+you when you define a L<result class|DBIx::Class::Manual::Glossary/Result class>.
 
 You can retrieve the result source at runtime in the following ways:
 
@@ -96,7 +96,7 @@ You can retrieve the result source at runtime in the following ways:
 
 =item From a Result object:
 
-   $row->result_source;
+   $result->result_source;
 
 =item From a ResultSet object:
 
@@ -627,7 +627,7 @@ sub primary_columns {
 # a helper method that will automatically die with a descriptive message if
 # no pk is defined on the source in question. For internal use to save
 # on if @pks... boilerplate
-sub _pri_cols {
+sub _pri_cols_or_die {
   my $self = shift;
   my @pcols = $self->primary_columns
     or $self->throw_exception (sprintf(
@@ -637,6 +637,20 @@ sub _pri_cols {
     ));
   return @pcols;
 }
+
+# same as above but mandating single-column PK (used by relationship condition
+# inference)
+sub _single_pri_col_or_die {
+  my $self = shift;
+  my ($pri, @too_many) = $self->_pri_cols_or_die;
+
+  $self->throw_exception( sprintf(
+    "Operation requires a single-column primary key declared on '%s'",
+    $self->source_name || $self->result_class || $self->name || 'Unknown source...?',
+  )) if @too_many;
+  return $pri;
+}
+
 
 =head2 sequence
 
@@ -1664,7 +1678,7 @@ our $UNRESOLVABLE_CONDITION = \ '1 = 0';
 
 # Resolves the passed condition to a concrete query fragment and a flag
 # indicating whether this is a cross-table condition. Also an optional
-# list of non-triviail values (notmally conditions) returned as a part
+# list of non-trivial values (normally conditions) returned as a part
 # of a joinfree condition hash
 sub _resolve_condition {
   my ($self, $cond, $as, $for, $rel_name) = @_;

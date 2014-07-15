@@ -11,13 +11,20 @@ use Carp ();
 # POD is generated automatically by calling _gen_pod from the
 # Makefile.PL in $AUTHOR mode
 
-my $json_any = {
-  'JSON::Any'                     => '1.22',
+# NOTE: the rationale for 2 JSON::Any versions is that
+# we need the newer only to work around JSON::XS, which
+# itself is an optional dep
+my $min_json_any = {
+  'JSON::Any'                     => '1.23',
+};
+my $test_and_dist_json_any = {
+  'JSON::Any'                     => '1.31',
 };
 
 my $moose_basic = {
   'Moose'                         => '0.98',
   'MooseX::Types'                 => '0.21',
+  'MooseX::Types::LoadableClass'  => '0.011',
 };
 
 my $replicated = {
@@ -26,7 +33,7 @@ my $replicated = {
 
 my $admin_basic = {
   %$moose_basic,
-  %$json_any,
+  %$min_json_any,
   'MooseX::Types::Path::Class'    => '0.05',
   'MooseX::Types::JSON'           => '0.02',
   'namespace::autoclean'          => '0.09',
@@ -164,7 +171,7 @@ my $reqs = {
 
   test_pod => {
     req => {
-      'Test::Pod'                 => '1.41',
+      'Test::Pod'                 => '1.42',
     },
   },
 
@@ -189,13 +196,16 @@ my $reqs = {
   },
 
   test_prettydebug => {
-    req => $json_any,
+    req => $min_json_any,
   },
 
   test_admin_script => {
     req => {
       %$admin_script,
+      %$test_and_dist_json_any,
       'JSON' => 0,
+      'JSON::PP' => 0,
+      'Cpanel::JSON::XS' => 0,
       'JSON::XS' => 0,
       $^O eq 'MSWin32'
         # for t/admin/10script.t
@@ -206,10 +216,10 @@ my $reqs = {
     }
   },
 
-  test_leaks => {
+  test_leaks_heavy => {
     req => {
-      'Test::Memory::Cycle'       => '0',
-      'Devel::Cycle'              => '1.10',
+      'Class::MethodCache' => '0.02',
+      'PadWalker' => '1.06',
     },
   },
 
@@ -611,6 +621,7 @@ my $reqs = {
 
   dist_dir => {
     req => {
+      %$test_and_dist_json_any,
       'ExtUtils::MakeMaker' => '6.64',
       'Pod::Inherit'        => '0.90',
       'Pod::Tree'           => '0',
@@ -897,7 +908,7 @@ EOD
     '=item Return Value: \%list_of_loaderrors_per_module',
     '=back',
     <<'EOD',
-Returns a hashref containing the actual errors that occured while attempting
+Returns a hashref containing the actual errors that occurred while attempting
 to load each module in the requirement group.
 EOD
     '=head1 AUTHOR',

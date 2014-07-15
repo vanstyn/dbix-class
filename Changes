@@ -1,5 +1,86 @@
 Revision history for DBIx::Class
 
+    * Fixes
+        - Fix on_connect_* not always firing in some cases - a race condition
+          existed between storage accessor setters and the determine_driver
+          routines, triggering a connection before the set-cycle is finished
+        - Avoid unnecessary database hits when accessing prefetched related
+          resultsets with no rows.
+
+0.08270 2014-01-30 21:54 (PST)
+    * Fixes
+        - Fix 0.08260 regression in DBD::SQLite bound int handling. Inserted
+          data was not affected, but any function <=> integer comparison would
+          have failed (originally fixed way back in 0e773352)
+        - Fix failure to load DateTime formatter when connecting to Firebird
+          over ODBC
+
+    * Misc
+        - All drivers based on ::Storage::DBI::Firebird::Common now return the
+          same sqlt_type value (affects ::DBI::Interbase, ::DBI::Firebird and
+          ::DBI::ODBC::Firebird)
+
+0.08260 2014-01-28 18:52 (UTC)
+    * New Features
+        - A new zero-to-DBIC style manual: DBIx::Class::Manual::QuickStart
+
+    * Notable Changes and Deprecations
+        - Explicitly deprecate combination of distinct and selecting a
+          non-column via $rs->get_column()
+
+    * Fixes
+        - More robust handling of circular relationship declarations by loading
+          foreign classes less frequently (should resolve issues like
+          http://lists.scsys.co.uk/pipermail/dbix-class/2013-June/011374.html)
+          Note that none of this is a manifestations of a DBIC bug, but rather
+          unexpected (but correct) behavior of load-order-dependent (hence
+          logically broken) Resultclass hierarchies. In order to deal with this
+          DBIC is scaling back a large number of sanity checks, which are to be
+          reintroduce pending a better framework for source registration
+        - Fix multiple edge cases of complex prefetch combining incorrectly
+          with correlated subquery selections
+        - Fix multiple edge cases stemming from interaction of a non-selecting
+          order_by specification and distinct and/or complex prefetch
+        - Fix unbound growth of a resultset during repeated execute/exhaust
+          cycles (GH#29)
+        - Work around (and be very vocal about the fact) when DBIC encounters
+          an exception object with broken string overloading
+        - Clarify ambiguous behavior of distinct when used with ResultSetColumn
+          i.e. $rs->search({}, { distinct => 1 })->get_column (...)
+        - Setting quote_names propagates to SQL::Translator when producing
+          SQLite DDL (it is one of the few producers *NOT* quoting by default)
+        - Fix incorrect binding of large integers on old versions of
+          DBD::SQLite (now DBIC simply always binds SQLite ints as BIGINT)
+        - Silence (harmless) warnings on recent DBD::SQLite versions, when
+          inserting/updating large integers on 32bit ivsize systems (RT#76395)
+        - Back out self-cleaning from DBIx::Class::Carp for the time being
+          (as a side effect fixes RT#86267)
+        - Fix incorrect internal use of implicit list context in copy()
+        - Fix 0.08250 regression in driver determination when DBI_DSN is used
+        - Tests no longer fail if $ENV{DBI_DSN} is set
+        - Throw clearer exception on ->new_related() with a non-existent
+          relationship
+        - Fix incorrect parethesis unroll with multicolumn in, (never noticed
+          before fixing false positive in SQLA::Test 1.77)
+        - Fix t/storage/replicated.t class loading problem
+        - Stop using the deprecated Class::MOP::load_class()
+        - Fix warning in t/54taint.t with explicitly unset PERL5LIB (RT#91972)
+        - Fix t/54taint.t failing under a local::lib with installed earlier
+          DBIC version (RT#92486)
+
+    * Misc
+        - Massive incompatible change of ::BlockRunner internals (was never
+          documented as usable externally, this last set of changes settles
+          the design for proper documentation and opening up)
+        - Adjust exceptions in tests to accommodate changes in the upcoming
+          DBD::SQLite based on libsqlite 3.8.2
+        - More robust lock file naming scheme - allow tests to work on exotic
+          MSWin32 filesystems (habitual offender being http://is.gd/iy5XVP)
+        - Better diagnostics when File::Spec->tmpdir gives us crap in testing
+        - Replace $row with $result in all docs to be consistent and to
+          clarify various return values
+
+0.08250 2013-04-29 22:00 (UTC)
     * New Features / Changes
         - Rewrite from scratch the result constructor codepath - many bugfixes
           and performance improvements (the current codebase is now capable of

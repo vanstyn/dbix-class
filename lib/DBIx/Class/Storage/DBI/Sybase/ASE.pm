@@ -16,6 +16,7 @@ use Sub::Name();
 use Data::Dumper::Concise 'Dumper';
 use Try::Tiny;
 use Context::Preserve 'preserve_context';
+use DBIx::Class::_Util 'sigwarn_silencer';
 use namespace::clean;
 
 __PACKAGE__->sql_limit_dialect ('GenericSubQ');
@@ -180,9 +181,8 @@ sub disconnect {
 # "active statement" warning on disconnect, which we throw away here.
 # This is due to the bug described in insert_bulk.
 # Currently a noop because 'prepare' is used instead of 'prepare_cached'.
-  local $SIG{__WARN__} = sub {
-    warn $_[0] unless $_[0] =~ /active statement/i;
-  } if $self->_is_bulk_storage;
+  local $SIG{__WARN__} = sigwarn_silencer(qr/active statement/i)
+    if $self->_is_bulk_storage;
 
 # so that next transaction gets a dbh
   $self->_began_bulk_work(0) if $self->_is_bulk_storage;
@@ -748,7 +748,7 @@ sub _update_blobs {
   my ($self, $source, $blob_cols, $where) = @_;
 
   my @primary_cols = try
-    { $source->_pri_cols }
+    { $source->_pri_cols_or_die }
     catch {
       $self->throw_exception("Cannot update TEXT/IMAGE column(s): $_")
     };
@@ -783,7 +783,7 @@ sub _insert_blobs {
 
   my %row = %$row;
   my @primary_cols = try
-    { $source->_pri_cols }
+    { $source->_pri_cols_or_die }
     catch {
       $self->throw_exception("Cannot update TEXT/IMAGE column(s): $_")
     };
@@ -1033,9 +1033,9 @@ For example, this will not work:
 
   $schema->txn_do(sub {
     my $rs = $schema->resultset('Book');
-    while (my $row = $rs->next) {
+    while (my $result = $rs->next) {
       $schema->resultset('MetaData')->create({
-        book_id => $row->id,
+        book_id => $result->id,
         ...
       });
     }

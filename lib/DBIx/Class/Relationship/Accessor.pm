@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use Sub::Name;
 use DBIx::Class::Carp;
+use DBIx::Class::_Util 'fail_on_internal_wantarray';
 use namespace::clean;
 
 our %_pod_inherit_config =
@@ -64,23 +65,26 @@ sub add_relationship_accessor {
           # fixup the code a bit to make things saner, but ideally 'filter' needs to
           # be deprecated ASAP and removed shortly after
           # Not doing so before 0.08250 however, too many things in motion already
-          my ($pk_col, @rest) = $val->_pri_cols;
+          my ($pk_col, @rest) = $val->result_source->_pri_cols_or_die;
           $self->throw_exception(
             "Relationship '$rel' of type 'filter' can not work with a multicolumn primary key on source '$f_class'"
           ) if @rest;
 
-          my $v = $val->$pk_col;
+          my $pk_val = $val->get_column($pk_col);
           carp_unique (
             "Unable to deflate 'filter'-type relationship '$rel' (related object "
           . "primary key not retrieved), assuming undef instead"
-          ) if ( ! defined $v and $val->in_storage );
+          ) if ( ! defined $pk_val and $val->in_storage );
 
-          return $v;
+          return $pk_val;
         }
       }
     );
   } elsif ($acc_type eq 'multi') {
-    $meth{$rel} = sub { shift->search_related($rel, @_) };
+    $meth{$rel} = sub {
+      DBIx::Class::_ENV_::ASSERT_NO_INTERNAL_WANTARRAY and wantarray and my $sog = fail_on_internal_wantarray($_[0]);
+      shift->search_related($rel, @_)
+    };
     $meth{"${rel}_rs"} = sub { shift->search_related_rs($rel, @_) };
     $meth{"add_to_${rel}"} = sub { shift->create_related($rel, @_); };
   } else {

@@ -3,6 +3,7 @@ use warnings;
 
 use Test::More;
 use Test::Exception;
+use Test::Warn;
 
 use DBI::Const::GetInfoType;
 use Scalar::Util qw/weaken/;
@@ -210,30 +211,7 @@ lives_ok { $cd->set_producers ([ $producer ]) } 'set_relationship doesnt die';
         INNER JOIN `artist` `artist` ON `artist`.`artistid` = `me`.`artist`
     )',
     [],
-    'overriden default join type works',
-  );
-}
-
-{
-  # Test support for straight joins
-  my $cdsrc = $schema->source('CD');
-  my $artrel_info = $cdsrc->relationship_info ('artist');
-  $cdsrc->add_relationship(
-    'straight_artist',
-    $artrel_info->{class},
-    $artrel_info->{cond},
-    { %{$artrel_info->{attrs}}, join_type => 'straight' },
-  );
-  is_same_sql_bind (
-    $cdsrc->resultset->search({}, { prefetch => 'straight_artist' })->as_query,
-    '(
-      SELECT `me`.`cdid`, `me`.`artist`, `me`.`title`, `me`.`year`, `me`.`genreid`, `me`.`single_track`,
-             `straight_artist`.`artistid`, `straight_artist`.`name`, `straight_artist`.`rank`, `straight_artist`.`charfield`
-        FROM cd `me`
-        STRAIGHT_JOIN `artist` `straight_artist` ON `straight_artist`.`artistid` = `me`.`artist`
-    )',
-    [],
-    'straight joins correctly supported for mysql'
+    'overridden default join type works',
   );
 }
 
@@ -264,7 +242,7 @@ NULLINSEARCH: {
 
     my $artist = $artist2_rs->single;
 
-    is $artist => undef
+    is $artist => undef,
       => 'Nothing Found!';
 }
 
@@ -370,16 +348,22 @@ ZEROINSEARCH: {
     select => [ \ 'YEAR(year)' ], as => ['y'], distinct => 1,
   });
 
-  is_deeply (
-    [ sort ($rs->get_column ('y')->all) ],
+  my $y_rs = $rs->get_column ('y');
+
+  warnings_exist { is_deeply (
+    [ sort ($y_rs->all) ],
     [ sort keys %$cds_per_year ],
     'Years group successfully',
-  );
+  ) } qr/
+    \QUse of distinct => 1 while selecting anything other than a column \E
+    \Qdeclared on the primary ResultSource is deprecated\E
+  /x, 'deprecation warning';
+
 
   $rs->create ({ artist => 1, year => '0-1-1', title => 'Jesus Rap' });
 
   is_deeply (
-    [ sort $rs->get_column ('y')->all ],
+    [ sort $y_rs->all ],
     [ 0, sort keys %$cds_per_year ],
     'Zero-year groups successfully',
   );
@@ -390,11 +374,14 @@ ZEROINSEARCH: {
     year => { '!=', undef }
   ]});
 
-  is_deeply (
+  warnings_exist { is_deeply (
     [ $restrict_rs->get_column('y')->all ],
-    [ $rs->get_column ('y')->all ],
+    [ $y_rs->all ],
     'Zero year was correctly excluded from resultset',
-  );
+  ) } qr/
+    \QUse of distinct => 1 while selecting anything other than a column \E
+    \Qdeclared on the primary ResultSource is deprecated\E
+  /x, 'deprecation warning';
 }
 
 # make sure find hooks determine driver

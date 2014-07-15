@@ -3,6 +3,7 @@ use warnings;
 
 use 5.008001;
 use inc::Module::Install 1.06;
+BEGIN { makemaker_args( NORECURS => 1 ) } # needs to happen early for old EUMM
 
 ##
 ## DO NOT USE THIS HACK IN YOUR DISTS!!! (it makes #toolchain sad)
@@ -12,7 +13,6 @@ use inc::Module::Install 1.06;
 # for that)
 BEGIN {
   $Module::Install::AUTHOR = 0 if (grep { $ENV{"PERL5_${_}_IS_RUNNING"} } (qw/CPANM CPANPLUS CPAN/) );
-  makemaker_args( NORECURS => 1 );
 }
 
 homepage 'http://www.dbix-class.org/';
@@ -27,6 +27,10 @@ perl_version '5.008001';
 all_from 'lib/DBIx/Class.pm';
 Meta->{values}{x_authority} = 'cpan:RIBASUSHI';
 
+# nothing determined at runtime, except for possibly SQLT dep, see
+# comment further down
+dynamic_config 0;
+
 tests_recursive (qw|
     t
 |);
@@ -40,15 +44,18 @@ install_script (qw|
 ### All of them *MUST* go to DBIx::Class::Optional::Dependencies
 ###
 my $runtime_requires = {
-  # FIXME - temporary workaround for RT#83143 (Path::Class)
-  'File::Spec'               => '3.30',
-
   # FIXME - temporary, needs throwing out for something more efficient
   'Data::Compare'            => '1.22',
 
   # DBI itself should be capable of installation and execution in pure-perl
   # mode. However it has never been tested yet, so consider XS for the time
   # being
+###
+### IMPORTANT - do not raise this dependency
+### even though many bugfixes are present in newer versions, the general DBIC
+### rule is to bend over backwards for available DBI versions (given upgrading
+### them is often *not* easy or even possible)
+###
   'DBI'                      => '1.57',
 
   # on older versions first() leaks
@@ -62,7 +69,7 @@ my $runtime_requires = {
   'Sub::Name'                => '0.04',
 
   # pure-perl (FatPack-able) libs
-  'Class::Accessor::Grouped' => '0.10009',
+  'Class::Accessor::Grouped' => '0.10010',
   'Class::C3::Componentised' => '1.0009',
   'Class::Inspector'         => '1.24',
   'Config::Any'              => '0.20',
@@ -71,13 +78,13 @@ my $runtime_requires = {
   'Data::Page'               => '2.00',
   'Devel::GlobalDestruction' => '0.09',
   'Hash::Merge'              => '0.12',
-  'Moo'                      => '1.000006',
+  'Moo'                      => '1.002',
   'MRO::Compat'              => '0.12',
   'Module::Find'             => '0.07',
   'namespace::clean'         => '0.24',
   'Path::Class'              => '0.18',
   'Scope::Guard'             => '0.03',
-  'SQL::Abstract'            => '1.73',
+  'SQL::Abstract'            => '1.77',
   'Try::Tiny'                => '0.07',
 
   # Technically this is not a core dependency - it is only required
@@ -87,9 +94,6 @@ my $runtime_requires = {
 };
 
 my $build_requires = {
-  # needed for testing only, not for operation
-  # we will move away from this dep eventually, perhaps to DBD::CSV or something
-  'DBD::SQLite'              => '1.29',
 };
 
 my $test_requires = {
@@ -98,30 +102,32 @@ my $test_requires = {
   'Test::Exception'          => '0.31',
   'Test::Warn'               => '0.21',
   'Test::More'               => '0.94',
-  # not sure if this is necessary at all, ask schwern some day
-  'Test::Builder'            => '0.94',
+
+  # needed for testing only, not for operation
+  # we will move away from this dep eventually, perhaps to DBD::CSV or something
+###
+### IMPORTANT - do not raise this dependency
+### even though many bugfixes are present in newer versions, the general DBIC
+### rule is to bend over backwards for available DBDs (given upgrading them is
+### often *not* easy or even possible)
+###
+  'DBD::SQLite'              => '1.29',
 
   # this is already a dep of n::c, but just in case - used by t/55namespaces_cleaned.t
   # remove and do a manual glob-collection if n::c is no longer a dep
   'Package::Stash'           => '0.28',
 };
 
-# make strictures.pm happy (DO NOT LIKE, TOO MUCH XS!)
-# (i.e. what if the .git/.svn is *not* because of DBIC?)
-#
-# Note - this is added as test_requires *directly*, so it gets properly
-# excluded on META.yml cleansing
-if (-e '.git' or -e '.svn') {
-  test_requires 'indirect'              => '0.25';
-  test_requires 'multidimensional'      => '0.008';
-  test_requires 'bareword::filehandles' => '0.003';
-}
-
 # if the user has this env var set and no SQLT installed, tests will fail
-# same rationale for direct test_requires as the strictures stuff above
-# (even though no dist will be created from this)
+# Note - this is added as test_requires *directly*, so it gets properly
+# excluded on META.yml cleansing (even though no dist can be created from this)
 # we force this req regarless of author_deps, worst case scenario it will
 # be specified twice
+#
+# also note that we *do* set dynamic_config => 0, as this is the only thing
+# that we determine dynamically, and in all fairness if someone sets the
+# envvar *and* is not running a full Makefile/make/maketest cycle - they get
+# to keep the pieces
 if ($ENV{DBICTEST_SQLT_DEPLOY}) {
   local @INC = ('lib', @INC);
   require DBIx::Class::Optional::Dependencies;
@@ -141,6 +147,52 @@ my $reqs = {
 
 # only do author-includes if not part of a `make` run
 if ($Module::Install::AUTHOR  and ! $ENV{MAKELEVEL}) {
+  invoke_author_mode()
+}
+else {
+  # make sure this Makefile can not be used to make a dist
+  # (without the author includes there are no meta cleanup, no sanity checks, etc)
+  postamble <<EOP;
+create_distdir: nonauthor_stop_distdir_creation
+nonauthor_stop_distdir_creation:
+\t\$(NOECHO) \$(ECHO) Creation of dists in non-author mode is not allowed
+\t\$(NOECHO) \$(FALSE)
+EOP
+}
+
+# compose final req list, for alphabetical ordering
+my %final_req;
+for my $rtype (keys %$reqs) {
+  for my $mod (keys %{$reqs->{$rtype}} ) {
+
+    # sanity check req duplications
+    die "$mod specified as both a '$rtype' and a '$final_req{$mod}[0]'\n"
+      if $final_req{$mod};
+
+    $final_req{$mod} = [ $rtype, $reqs->{$rtype}{$mod}||0 ],
+  }
+}
+
+# actual require
+for my $mod (sort keys %final_req) {
+  my ($rtype, $ver) = @{$final_req{$mod}};
+  no strict 'refs';
+  $rtype->($mod, $ver);
+}
+
+# author-mode or not - this is where we show a list of missing deps
+# IFF we are running interactively
+auto_install();
+
+WriteAll();
+
+exit 0;
+
+# needs to be here to keep 5.8 string eval happy
+# (the include of Makefile.PL.inc loop)
+my $mm_proto;
+
+sub invoke_author_mode {
   # get options here, make $args available to all snippets
   require Getopt::Long;
   my $getopt = Getopt::Long::Parser->new(
@@ -158,9 +210,14 @@ if ($Module::Install::AUTHOR  and ! $ENV{MAKELEVEL}) {
 
   # We need the MM facilities to generate the pieces for the final MM run.
   # Just instantiate a throaway object here
-  my $mm_proto = ExtUtils::MakeMaker->new({
+  #
+  # Also EUMM and MI disagree on what is the format of Meta->name, just
+  # punt here until a new M::I is shipped (if at all)
+  my $name = Meta->name || die 'The Module::Install metadata must be available at this point but is not - did you rearrange the Makefile.PL...?';
+  $name =~ s/\-/::/g;
+  $mm_proto = ExtUtils::MakeMaker->new({
     NORECURS => 1,
-    NAME => Meta->name || die 'The Module::Install metadata must be available at this point but is not - did you rearrange the Makefile.PL...?',
+    NAME => $name,
   });
 
   # Crutch for DISTBUILDING_IN_HELL
@@ -190,40 +247,3 @@ if ($Module::Install::AUTHOR  and ! $ENV{MAKELEVEL}) {
     ;
   }
 }
-else {
-  # make sure this Makefile can not be used to make a dist
-  # (without the author includes there are no meta cleanup, no sanity checks, etc)
-  postamble <<EOP;
-create_distdir: nonauthor_stop_distdir_creation
-nonauthor_stop_distdir_creation:
-\t\$(NOECHO) \$(ECHO) Creation of dists in non-author mode is not allowed
-\t\$(NOECHO) \$(FALSE)
-EOP
-}
-
-# compose final req list, for alphabetical ordering
-my %final_req;
-for my $rtype (keys %$reqs) {
-  for my $mod (keys %{$reqs->{$rtype}} ) {
-
-    # sanity check req duplications
-    if ($final_req{$mod}) {
-      die "$mod specified as both a '$rtype' and a '$final_req{$mod}[0]'\n";
-    }
-
-    $final_req{$mod} = [ $rtype, $reqs->{$rtype}{$mod}||0 ],
-  }
-}
-
-# actual require
-for my $mod (sort keys %final_req) {
-  my ($rtype, $ver) = @{$final_req{$mod}};
-  no strict 'refs';
-  $rtype->($mod, $ver);
-}
-
-# author-mode or not - this is where we show a list of missing deps
-# IFF we are running interactively
-auto_install();
-
-WriteAll();
